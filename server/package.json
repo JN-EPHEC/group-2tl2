@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
-    "start": "npx ts-node src/server.ts"
-  },
+
+
+"scripts": {
+  "start": "tsx watch src/server.ts"
+},
+
+
   "author": "",
   "license": "ISC",
   "devDependencies": {
