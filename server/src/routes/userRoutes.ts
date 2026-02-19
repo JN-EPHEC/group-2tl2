@@ -42,9 +42,7 @@ router.get("/", userController.getAllUsers);
  * 201:
  * description: Utilisateur créé avec succès
  * 400:
- * description: Données invalides fournies
- * 500:
- * description: Erreur lors de la création
+ * description: Données invalides
  */
 router.post("/", userController.createUser);
 
@@ -60,16 +58,13 @@ router.post("/", userController.createUser);
  * required: true
  * schema:
  * type: integer
- * description: ID numérique de l'utilisateur
  * responses:
  * 204:
- * description: Utilisateur supprimé avec succès
+ * description: Supprimé
  * 400:
- * description: ID invalide (format incorrect)
+ * description: ID invalide
  * 404:
- * description: Utilisateur non trouvé
- * 500:
- * description: Erreur lors de la suppression
+ * description: Non trouvé
  */
 router.delete("/:id", checkIdParam, userController.deleteUser);
 
