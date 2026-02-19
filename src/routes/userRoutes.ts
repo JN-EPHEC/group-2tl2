@@ -1,10 +1,11 @@
 import { Router } from "express";
-
 import * as userController from "../controllers/userController";
 
 const router = Router();
 
-router.get("/", userController.getAllUsers);
+// Ne remettez pas de commentaire Swagger ici, on l'a mis dans swagger.ts
+router.get('/', userController.getAllUsers);
+
 router.post("/", userController.createUser);
 router.delete("/:id", userController.deleteUser);
 
