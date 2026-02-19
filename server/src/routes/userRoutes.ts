@@ -13,8 +13,6 @@ const router = Router();
  * responses:
  * 200:
  * description: Liste des utilisateurs récupérée avec succès
- * 500:
- * description: Erreur interne du serveur
  */
 router.get("/", userController.getAllUsers);
 
@@ -30,9 +28,6 @@ router.get("/", userController.getAllUsers);
  * application/json:
  * schema:
  * type: object
- * required:
- * - name
- * - email
  * properties:
  * name:
  * type: string
@@ -41,8 +36,6 @@ router.get("/", userController.getAllUsers);
  * responses:
  * 201:
  * description: Utilisateur créé avec succès
- * 400:
- * description: Données invalides
  */
 router.post("/", userController.createUser);
 
@@ -61,10 +54,6 @@ router.post("/", userController.createUser);
  * responses:
  * 204:
  * description: Supprimé
- * 400:
- * description: ID invalide
- * 404:
- * description: Non trouvé
  */
 router.delete("/:id", checkIdParam, userController.deleteUser);
 

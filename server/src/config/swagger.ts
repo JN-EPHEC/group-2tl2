@@ -4,26 +4,47 @@ const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "Mon API Géniale",
+      title: "API Utilisateurs",
       version: "1.0.0",
     },
-    // On définit la route DIRECTEMENT ici pour éviter le scan problématique
     paths: {
       "/api/users": {
         get: {
-          summary: "Récupère la liste des utilisateurs",
+          summary: "Liste des utilisateurs",
           tags: ["Users"],
-          responses: {
-            200: {
-              description: "Succès",
-            },
-          },
+          responses: { 200: { description: "Succès" } }
         },
+        post: {
+          summary: "Créer un utilisateur",
+          tags: ["Users"],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    email: { type: "string" }
+                  }
+                }
+              }
+            }
+          },
+          responses: { 201: { description: "Créé" } }
+        }
       },
-    },
+      "/api/users/{id}": {
+        delete: {
+          summary: "Supprimer un utilisateur",
+          tags: ["Users"],
+          parameters: [{ in: "path", name: "id", required: true, schema: { type: "integer" } }],
+          responses: { 204: { description: "Supprimé" } }
+        }
+      }
+    }
   },
-  // On met un tableau VIDE ici pour arrêter de scanner les fichiers .ts
-  apis: [], 
+  apis: [], // On laisse vide pour stopper le scan qui fait planter le serveur
 };
 
 export const swaggerSpec = swaggerJsdoc(swaggerOptions);
