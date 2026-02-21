@@ -6,7 +6,7 @@ interface User { id: number; name: string; email: string; }
 function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [nom, setNom] = useState("");
-  const [prenom, setPrenom] = useState("");
+  const [email, setEmail] = useState("");
 
   const loadData = () => {
     fetch("http://localhost:3000/api/users")
@@ -18,13 +18,15 @@ function App() {
   useEffect(() => { loadData(); }, []);
 
   const handleAdd = () => {
-    if (!nom || !prenom) return;
+    if (!nom || !email) return;
+
     fetch("http://localhost:3000/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: nom, email: prenom })
+      body: JSON.stringify({ name: nom, email })
     }).then(() => {
-      setNom(""); setPrenom("");
+      setNom("");
+      setEmail("");
       loadData();
     });
   };
@@ -41,9 +43,24 @@ function App() {
       <div className="tp-card">
         <h1 style={{ marginTop: 0 }}>Annuaire Étudiants</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <input style={{ flex: 1, padding: '10px' }} placeholder="Nom" value={nom} onChange={e => setNom(e.target.value)} />
-          <input style={{ flex: 1, padding: '10px' }} placeholder="email" value={prenom} onChange={e => setPrenom(e.target.value)} />
-          <button style={{ background: '#27ae60', color: 'white', border: 'none', padding: '0 20px', cursor: 'pointer' }} onClick={handleAdd}>Ajouter</button>
+          <input
+            style={{ flex: 1, padding: '10px' }}
+            placeholder="Nom"
+            value={nom}
+            onChange={e => setNom(e.target.value)}
+          />
+          <input
+            style={{ flex: 1, padding: '10px' }}
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+          />
+          <button
+            style={{ background: '#27ae60', color: 'white', border: 'none', padding: '0 20px', cursor: 'pointer' }}
+            onClick={handleAdd}
+          >
+            Ajouter
+          </button>
         </div>
       </div>
 
@@ -51,7 +68,7 @@ function App() {
         <thead>
           <tr>
             <th className="tp-th" style={{ width: '40%' }}>NOM</th>
-            <th className="tp-th" style={{ width: '50%' }}>PRÉNOM</th>
+            <th className="tp-th" style={{ width: '50%' }}>EMAIL</th>
             <th className="tp-th" style={{ width: '10%', textAlign: 'right' }}>ID</th>
           </tr>
         </thead>
