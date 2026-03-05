@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1772721070966" clover="3.2.0">
-  <project timestamp="1772721070967" name="All files">
+<coverage generated="1772733785964" clover="3.2.0">
+  <project timestamp="1772733785964" name="All files">
     <metrics statements="16" coveredstatements="16" conditionals="18" coveredconditionals="18" methods="1" coveredmethods="1" elements="35" coveredelements="35" complexity="0" loc="16" ncloc="16" packages="1" files="1" classes="1"/>
     <file name="password.ts" path="C:\Users\Utilisateur\Music\dev3-backend-tp1\server\src\routes\utils\password.ts">
       <metrics statements="16" coveredstatements="16" conditionals="18" coveredconditionals="18" methods="1" coveredmethods="1"/>
