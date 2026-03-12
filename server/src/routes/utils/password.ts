@@ -1,7 +1,7 @@
 export const validatePassword = (pwd: string, userAge: number): boolean => {
-  if (!pwd) return false; // Branch 1
-  if (pwd.length < 8) return false; // Branch 2
-  if (pwd.length > 20) return false; // Branch 3
+  if (!pwd) return false;
+  if (pwd.length < 8) return false;
+  if (pwd.length > 20) return false;
 
   const hasUpperCase = /[A-Z]/.test(pwd);
   const hasLowerCase = /[a-z]/.test(pwd);
@@ -9,17 +9,20 @@ export const validatePassword = (pwd: string, userAge: number): boolean => {
   const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
 
   if (userAge < 12) {
-    // Enfant : règles souples
-    if (!hasLowerCase) return false; // Branch 4
+    if (!hasLowerCase) return false;
     return true;
-  } else if (userAge >= 12 && userAge < 65) {
-    // Adulte : règles strictes
-    if (!hasUpperCase || !hasLowerCase || !hasNumbers) return false; // Branch 5
-    if (!hasSpecial) return false; // Branch 6
-  } else {
-    // Senior : règles moyennes
-    if (!hasNumbers && !hasUpperCase) return false; // Branch 7
+  } 
+  
+  if (userAge >= 12 && userAge < 65) {
+    if (!hasUpperCase || !hasLowerCase || !hasNumbers) return false;
+    if (!hasSpecial) return false;
+    return true;
   }
 
-  return true; // Branch final
+  // Section Senior : Une seule règle simple
+  // Si on n'a ni chiffre NI majuscule, on rejette.
+  const isInvalidSenior = !hasNumbers && !hasUpperCase;
+  if (isInvalidSenior) return false;
+
+  return true;
 };
