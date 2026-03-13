@@ -3,7 +3,7 @@ name: Continuous Deployment - Frontend
 on:
   push:
     branches:
-      - tp5 #  Change par 'tp5' si tu veux tester sur ta branche actuell
+      - tp5 
 
 jobs:
   deploy-frontend:
@@ -29,7 +29,7 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 54321 # <-- La ligne magique !
+          port: 54321
           source: "client/dist/*"
           target: "/var/www/html/" 
           strip_components: 2
