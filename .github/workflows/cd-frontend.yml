@@ -33,6 +33,3 @@ jobs:
           source: "client/dist/*"
           target: "/var/www/final_deploy/"
           strip_components: 2
-
-
-          target: "/var/www/final_deploy/"
