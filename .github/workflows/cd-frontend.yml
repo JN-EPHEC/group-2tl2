@@ -3,7 +3,7 @@ name: Continuous Deployment - Frontend
 on:
   push:
     branches:
-      - tp5 #  Change par 'tp5' si tu veux tester sur ta branche actuelle
+      - tp5 #  Change par 'tp5' si tu veux tester sur ta branche actuell
 
 jobs:
   deploy-frontend:
