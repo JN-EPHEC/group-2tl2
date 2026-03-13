@@ -23,6 +23,7 @@ jobs:
           npm run build
         working-directory: ./client
         
+        
       - name: Deploy to VPS via SCP
         uses: appleboy/scp-action@v0.1.4
         with:
