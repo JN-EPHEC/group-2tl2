@@ -41,7 +41,7 @@ function App() {
       `}</style>
 
       <div className="tp-card">
-        <h1 style={{ marginTop: 0 }}>Annuaire Étudiants</h1>
+        <h1 style={{ marginTop: 0 }}>Annuaire Étudiants v2</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
           <input
             style={{ flex: 1, padding: '10px' }}
