@@ -11,11 +11,18 @@ function App() {
   const loadData = () => {
     fetch(`${import.meta.env.VITE_API_URL}/users`)
       .then(res => res.json())
-      .then(data => setUsers(data))
-      .catch(err => console.error("Erreur API:", err));
+      .then(data => {
+        // On s'assure que data est bien un tableau avant de set
+        if (Array.isArray(data)) {
+          setUsers(data);
+        }
+      })
+      .catch(err => console.error("Erreur API lors du chargement:", err));
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { 
+    loadData(); 
+  }, []);
 
   const handleAdd = () => {
     if (!nom || !email) return;
@@ -23,12 +30,22 @@ function App() {
     fetch(`${import.meta.env.VITE_API_URL}/users`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: nom, email })
-    }).then(() => {
-      setNom("");
-      setEmail("");
-      loadData();
-    });
+      body: JSON.stringify({ 
+        name: nom, 
+        email: email,
+        password: "password123" // Obligatoire selon ton schéma Sequelize
+      })
+    })
+    .then((res) => {
+      if (res.ok) {
+        setNom("");
+        setEmail("");
+        loadData(); // On recharge la liste après l'ajout réussi
+      } else {
+        console.error("L'API a rejeté l'ajout (vérifiez les logs du backend)");
+      }
+    })
+    .catch(err => console.error("Erreur réseau lors de l'ajout:", err));
   };
 
   return (
@@ -56,7 +73,7 @@ function App() {
             onChange={e => setEmail(e.target.value)}
           />
           <button
-            style={{ background: '#27ae60', color: 'white', border: 'none', padding: '0 20px', cursor: 'pointer' }}
+            style={{ background: '#27ae60', color: 'white', border: 'none', padding: '0 20px', cursor: 'pointer', borderRadius: '5px' }}
             onClick={handleAdd}
           >
             Ajouter
@@ -73,13 +90,19 @@ function App() {
           </tr>
         </thead>
         <tbody>
-          {users.map(u => (
-            <tr key={u.id}>
-              <td className="tp-td" style={{ fontWeight: 'bold' }}>{u.name}</td>
-              <td className="tp-td">{u.email}</td>
-              <td className="tp-td" style={{ textAlign: 'right', color: '#999' }}>#{u.id}</td>
+          {users.length > 0 ? (
+            users.map(u => (
+              <tr key={u.id}>
+                <td className="tp-td" style={{ fontWeight: 'bold' }}>{u.name}</td>
+                <td className="tp-td">{u.email}</td>
+                <td className="tp-td" style={{ textAlign: 'right', color: '#999' }}>#{u.id}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={3} className="tp-td" style={{ textAlign: 'center' }}>Aucun étudiant trouvé</td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
