@@ -31,5 +31,5 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 54321 # <-- La ligne magique !
           source: "client/dist/*"
-          target: "/var/www/react-dev3/" 
+          target: "/var/www/html/" 
           strip_components: 2
