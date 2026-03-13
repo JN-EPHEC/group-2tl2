@@ -31,5 +31,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 54321
           source: "client/dist/*"
-          target: "/var/www/html/" 
+          target: "/var/www/final_deploy/"
           strip_components: 2
+
+
+          target: "/var/www/final_deploy/"
