@@ -29,6 +29,7 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 54321 # <-- La ligne magique !
           source: "client/dist/*"
           target: "/var/www/react-dev3/" 
           strip_components: 2
