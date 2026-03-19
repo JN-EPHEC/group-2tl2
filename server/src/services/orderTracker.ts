@@ -1,60 +1,71 @@
-// 1. L'interface que tous les services de notification doivent respecter
-interface IObserver {
+// 1. Interface IOrderObserver (Le contrat imposé)
+interface IOrderObserver {
   update(status: string): void;
 }
 
-// 2. Les "Observateurs" concrets (les services)
-class EmailService implements IObserver {
-  update(status: string): void {
-    console.log(`[EMAIL] Notification envoyée : Votre commande est désormais "${status}".`);
+// 2. Les trois classes de services (Les Observateurs)
+class PushNotificationService implements IOrderObserver {
+  public update(status: string): void {
+    console.log(`[PUSH] Notification envoyée au smartphone : Commande ${status}.`);
   }
 }
 
-class PushService implements IObserver {
-  update(status: string): void {
-    console.log(`[PUSH] Alerte mobile : Statut mis à jour -> ${status}`);
+class CRMService implements IOrderObserver {
+  public update(status: string): void {
+    console.log(`[CRM] Dossier client mis à jour avec le statut : ${status}.`);
   }
 }
 
-// 3. Le "Sujet" (l'objet surveillé)
+class EmailNotificationService implements IOrderObserver {
+  public update(status: string): void {
+    console.log(`[EMAIL] Email de confirmation envoyé : Statut ${status}.`);
+  }
+}
+
+// 3 & 4. Le Sujet (OrderTracker) - Refactoré pour supprimer le couplage
 export class OrderTracker {
-  private observers: IObserver[] = []; // Liste des abonnés
-  private status: string = "EN_ATTENTE";
+  // Tableau pour stocker les observateurs dynamiquement
+  private observers: IOrderObserver[] = [];
+  private status: string = "EN_PREPARATION";
 
-  // Méthode pour ajouter un abonné
-  public subscribe(observer: IObserver): void {
+  // Méthode pour attacher (enregistrer) un service
+  public attach(observer: IOrderObserver): void {
     this.observers.push(observer);
-    console.log("Nouveau service abonné aux notifications.");
+    console.log("Service attaché avec succès au suivi de commande.");
   }
 
-  // Quand le statut change, on prévient tout le monde
-  public setStatus(newStatus: string): void {
-    this.status = newStatus;
-    console.log(`\n--- CHANGEMENT DE STATUT : ${this.status} ---`);
-    this.notifyAll();
-  }
-
-  private notifyAll(): void {
+  // Méthode pour notifier tous les services d'un coup
+  private notifyObservers(): void {
     for (const observer of this.observers) {
       observer.update(this.status);
     }
   }
+
+  // Modifié pour déclencher la notification automatique
+  public setStatus(newStatus: string): void {
+    this.status = newStatus;
+    console.log(`\n--- LOGISTIQUE : Passage au statut ${this.status} ---`);
+    this.notifyObservers();
+  }
 }
 
 // ==========================================================
-// --- PARTIE EXÉCUTION (TEST) ---
+// 5. PARTIE EXÉCUTION (TESTS)
 // ==========================================================
 
+// A. Instancier le tracker (Le Sujet)
 const tracker = new OrderTracker();
 
-// On crée les services
-const email = new EmailService();
-const push = new PushService();
+// B. Instancier les 3 services (Les Observateurs)
+const push = new PushNotificationService();
+const crm = new CRMService();
+const email = new EmailNotificationService();
 
-// On les abonne au tracker
-tracker.subscribe(email);
-tracker.subscribe(push);
+// C. Attacher les services au tracker
+tracker.attach(push);
+tracker.attach(crm);
+tracker.attach(email);
 
-// On change le statut pour déclencher les notifications
-tracker.setStatus("EXPÉDIÉE");
-tracker.setStatus("LIVRÉE");
+// D. Changer le statut pour voir les 3 services réagir
+tracker.setStatus("EXPEDIEE");
+tracker.setStatus("LIVREE");
