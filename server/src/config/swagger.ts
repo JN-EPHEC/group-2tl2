@@ -7,7 +7,36 @@ const swaggerOptions = {
       title: "API Utilisateurs",
       version: "1.0.0",
     },
+    // 1. Définition du schéma (le "moyen" de s'authentifier)
+    components: {
+      securitySchemes: {
+        basicAuth: {
+          type: "http",
+          scheme: "basic",
+        },
+      },
+    },
     paths: {
+      // 2. Application de la sécurité sur la route spécifique
+      "/api/admin/basic": {
+        get: {
+          summary: "Accès zone admin via Basic Auth",
+          tags: ["Admin"],
+          // C'est ici qu'on applique la sécurité
+          security: [
+            {
+              basicAuth: [], 
+            },
+          ],
+          responses: {
+            200: { 
+              description: "Accès autorisé",
+              content: { "text/plain": { example: "Bienvenue admin !" } }
+            },
+            401: { description: "Non autorisé - Identifiants incorrects" },
+          },
+        },
+      },
       "/api/users": {
         get: {
           summary: "Liste des utilisateurs",
@@ -44,9 +73,10 @@ const swaggerOptions = {
       }
     }
   },
-  apis: [], // On laisse vide pour stopper le scan qui fait planter le serveur
+  apis: [], 
 };
 
 export const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
 
 
