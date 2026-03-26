@@ -1,82 +1,64 @@
+// @ts-nocheck
 import swaggerJsdoc from "swagger-jsdoc";
 
 const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "API Utilisateurs",
+      title: "API Sécurisée - TP 07",
       version: "1.0.0",
     },
-    // 1. Définition du schéma (le "moyen" de s'authentifier)
     components: {
       securitySchemes: {
-        basicAuth: {
+        basicAuth: { type: "http", scheme: "basic" },
+        digestAuth: { type: "http", scheme: "digest" },
+        // AJOUT DU JWT ICI
+        bearerAuth: {
           type: "http",
-          scheme: "basic",
+          scheme: "bearer",
+          bearerFormat: "JWT",
         },
       },
     },
     paths: {
-      // 2. Application de la sécurité sur la route spécifique
       "/api/admin/basic": {
-        get: {
-          summary: "Accès zone admin via Basic Auth",
-          tags: ["Admin"],
-          // C'est ici qu'on applique la sécurité
-          security: [
-            {
-              basicAuth: [], 
-            },
-          ],
-          responses: {
-            200: { 
-              description: "Accès autorisé",
-              content: { "text/plain": { example: "Bienvenue admin !" } }
-            },
-            401: { description: "Non autorisé - Identifiants incorrects" },
-          },
-        },
+        get: { tags: ["Auth Classique"], security: [{ basicAuth: [] }], responses: { 200: { description: "OK" } } }
       },
-      "/api/users": {
-        get: {
-          summary: "Liste des utilisateurs",
-          tags: ["Users"],
-          responses: { 200: { description: "Succès" } }
-        },
+      "/api/admin/digest": {
+        get: { tags: ["Auth Classique"], security: [{ digestAuth: [] }], responses: { 200: { description: "OK" } } }
+      },
+      // --- NOUVELLES ROUTES JWT ---
+      "/api/login": {
         post: {
-          summary: "Créer un utilisateur",
-          tags: ["Users"],
+          tags: ["JWT"],
+          summary: "Obtenir un Access Token",
           requestBody: {
-            required: true,
             content: {
               "application/json": {
                 schema: {
                   type: "object",
                   properties: {
-                    name: { type: "string" },
-                    email: { type: "string" }
+                    username: { type: "string", example: "admin" },
+                    password: { type: "string", example: "supersecret" }
                   }
                 }
               }
             }
           },
-          responses: { 201: { description: "Créé" } }
+          responses: { 200: { description: "Token généré" } }
         }
       },
-      "/api/users/{id}": {
-        delete: {
-          summary: "Supprimer un utilisateur",
-          tags: ["Users"],
-          parameters: [{ in: "path", name: "id", required: true, schema: { type: "integer" } }],
-          responses: { 204: { description: "Supprimé" } }
+      "/api/admin/jwt": {
+        get: {
+          tags: ["JWT"],
+          summary: "Zone protégée par Token",
+          security: [{ bearerAuth: [] }],
+          responses: { 200: { description: "Accès autorisé" } }
         }
       }
-    }
+    },
   },
-  apis: [], 
+  apis: [],
 };
 
 export const swaggerSpec = swaggerJsdoc(swaggerOptions);
-
-
-

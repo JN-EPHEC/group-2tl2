@@ -1,30 +1,34 @@
 import { Request, Response, NextFunction } from 'express';
 
-export const basicAuth = (req: Request, res: Response, next: NextFunction) => {
-    // 2. Récupérer l'en-tête authorization
+export const basicAuth = (req: Request, res: Response, next: NextFunction): void => {
     const authHeader = req.headers.authorization;
 
-    // 3. Vérifier si l'en-tête existe et commence par "Basic "
-    if (authHeader && authHeader.startsWith('Basic ')) {
-        
-        // Extraction de la partie après "Basic " (le Base64)
-        const base64String = authHeader.split(' ')[1];
-
-        if (base64String) {
-            // 4. Utilisation de Buffer pour décoder le Base64 en texte clair
-            const credentials = Buffer.from(base64String, 'base64').toString('utf-8');
-
-            // 5. Séparer pour obtenir l'utilisateur (admin) et le mot de passe (supersecret)
-            const [username, password] = credentials.split(':');
-
-            // 6. Vérification des identifiants
-            if (username === 'admin' && password === 'supersecret') {
-                return next(); // Succès : on autorise l'accès
-            }
-        }
+    // 1. Vérification de la présence du header
+    if (!authHeader || !authHeader.startsWith('Basic ')) {
+        res.setHeader('WWW-Authenticate', 'Basic realm="Zone Admin"');
+        res.status(401).json({ error: 'Authentification Basic requise.' });
+        return; 
     }
 
-    // Sinon, renvoyer une erreur 401 avec l'en-tête WWW-Authenticate
-    res.set('WWW-Authenticate', 'Basic realm="Zone Admin"');
-    return res.status(401).send('Unauthorized');
+    // 2. Extraction sécurisée (on vérifie que le split a bien fonctionné)
+    const parts = authHeader.split(' ');
+    const base64String = parts[1];
+
+    if (!base64String) {
+        res.status(401).json({ error: 'Token Basic malformé.' });
+        return;
+    }
+
+    // 3. Décodage (Utilisation de Buffer)
+    // Si Buffer est encore rouge, c'est qu'il manque 'npm install @types/node --save-dev'
+    const credentials = Buffer.from(base64String, 'base64').toString('utf-8');
+    const [username, password] = credentials.split(':');
+
+    // 4. Validation des identifiants
+    if (username === 'admin' && password === 'supersecret') {
+        next(); 
+    } else {
+        res.setHeader('WWW-Authenticate', 'Basic realm="Zone Admin"');
+        res.status(401).json({ error: 'Identifiants Basic invalides.' });
+    }
 };
