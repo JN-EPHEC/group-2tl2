@@ -1,49 +1,73 @@
-import express from "express";
-import cors from "cors";
-import path from "path";
-
-const auth = require('http-auth'); 
-const authConnect = require('http-auth-connect'); 
-
-import { Database } from "./config/database";
-import { errorHandler } from "./middlewares/errorHandler";
-import { basicAuth } from "./middlewares/basicAuth";
+import express, { Request, Response, NextFunction } from 'express';
+import { basicAuth } from './middlewares/basicAuth'; // Ton fichier 1
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 const app = express();
-app.use(cors());
-app.use(express.json());
-
-// --- CONFIGURATION DIGEST CORRIGÉE ---
-const digest = auth.digest({ 
-    realm: "Zone securisee" 
-}, (username: string, callback: any) => {
-    if (username === "admin") {
-        callback("supersecret"); // <- L'erreur était là : il faut le mot de passe en clair !
-    } else {
-        callback();
-    }
-});
-
-// --- ROUTES ---
-app.get('/api/admin/digest', authConnect(digest), (req: any, res: any) => { 
-    res.json({ message: `Bienvenue dans la zone Digest, ${req.user} !` }); 
-});
-
-app.get("/api/admin/basic", basicAuth, (req, res) => {
-    res.status(200).send("Accès autorisé (Basic) !");
-});
-
-app.use(errorHandler);
-
 const PORT = 3000;
 
-// --- DÉMARRAGE ---
-app.listen(PORT, () => {
-    console.log("-------------------------------------------------------");
-    console.log(`🚀 SERVEUR ACTIF SUR http://localhost:${PORT}`);
-    console.log(`🔐 Identifiants : admin / supersecret`);
-    console.log("-------------------------------------------------------");
+app.use(express.json());
+
+// --- 1. Route HTTP Basic ---
+app.get('/api/admin/basic', basicAuth, (req: Request, res: Response) => {
+    res.status(200).json({ message: 'Succès HTTP Basic !' });
 });
 
-// On ignore l'erreur DB pour que le serveur ne s'éteigne pas
-Database.getInstance().sync().catch(() => {});
+// --- 2. Middleware Digest intégré ---
+const digestAuth = (req: Request, res: Response, next: NextFunction): void => {
+    const authHeader = req.headers.authorization;
+    const realm = "Zone securisee";
+
+    // Challenge si pas d'en-tête
+    if (!authHeader || !authHeader.startsWith('Digest ')) {
+        const nonce = crypto.randomBytes(16).toString('hex'); 
+        res.setHeader('WWW-Authenticate', `Digest realm="${realm}", qop="auth", nonce="${nonce}", opaque="12345"`);
+        res.status(401).json({ error: 'Authentification Digest requise.' });
+        return;
+    }
+
+    // Extraction des infos de la requête
+    const parts = authHeader.replace('Digest ', '').split(',').map(p => p.trim());
+    const params: { [key: string]: string } = {};
+    parts.forEach(part => {
+        const [key, val] = part.split('=');
+        if (key && val) params[key] = val.replace(/"/g, ''); 
+    });
+
+    const { username, nonce, uri, response, qop, nc, cnonce } = params;
+
+    try {
+        // C'est ici qu'on va lire ton fichier 2 (user.htdigest)
+        // (Vérifie juste que le nom du fichier correspond bien)
+        const fileContent = fs.readFileSync(path.join(__dirname, 'user.htdigest'), 'utf-8');
+        
+        // On récupère le hash à la fin de la ligne
+        const HA1 = fileContent.trim().split(':')[2]; 
+
+        if (username === 'admin') {
+            const HA2 = crypto.createHash('md5').update(`${req.method}:${uri}`).digest('hex');
+            const expectedResponse = crypto.createHash('md5')
+                .update(`${HA1}:${nonce}:${nc}:${cnonce}:${qop}:${HA2}`)
+                .digest('hex');
+
+            if (response === expectedResponse) {
+                return next(); // Bingo, le mot de passe est bon
+            }
+        }
+    } catch (error) {
+        console.error("Impossible de lire le fichier htdigest :", error);
+    }
+
+    res.status(401).json({ error: 'Identifiants Digest invalides.' });
+};
+
+// --- 3. Route HTTP Digest ---
+app.get('/api/admin/digest', digestAuth, (req: Request, res: Response) => {
+    res.status(200).json({ message: 'Bingo ! Connexion Digest réussie sur le port 3000.' });
+});
+
+// Lancement
+app.listen(PORT, () => {
+    console.log(`Serveur démarré sur http://localhost:${PORT}`);
+});
