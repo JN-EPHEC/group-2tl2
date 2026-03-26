@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
-// Utilisation de require pour éviter les erreurs de types TypeScript (le "rouge")
+
 const auth = require('http-auth'); 
 const authConnect = require('http-auth-connect'); 
 
@@ -13,40 +13,37 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- 1. CONFIGURATION DIGEST ---
-// Le realm doit correspondre EXACTEMENT à celui de mufasa dans ton fichier .htdigest
+// --- CONFIGURATION DIGEST CORRIGÉE ---
 const digest = auth.digest({ 
-  realm: "Zone securisee",
-  file: path.resolve(process.cwd(), "users.htdigest") 
+    realm: "Zone securisee" 
+}, (username: string, callback: any) => {
+    if (username === "admin") {
+        callback("supersecret"); // <- L'erreur était là : il faut le mot de passe en clair !
+    } else {
+        callback();
+    }
 });
 
-// --- 2. ROUTES ---
-
-// Route Basic Auth (Exercice précédent)
-app.get("/api/admin/basic", basicAuth, (req, res) => {
-  res.status(200).send("Accès autorisé : Bienvenue dans la zone admin (Basic) !");
-});
-
-// Route Digest Auth (Nouvelle route avec req.user)
-// On utilise authConnect pour transformer la config digest en middleware Express
+// --- ROUTES ---
 app.get('/api/admin/digest', authConnect(digest), (req: any, res: any) => { 
-  res.json({ message: `Bienvenue dans la zone Digest, ${req.user} !` }); 
+    res.json({ message: `Bienvenue dans la zone Digest, ${req.user} !` }); 
 });
 
-// --- 3. GESTION DES ERREURS ET DÉMARRAGE ---
+app.get("/api/admin/basic", basicAuth, (req, res) => {
+    res.status(200).send("Accès autorisé (Basic) !");
+});
 
 app.use(errorHandler);
 
 const PORT = 3000;
-const sequelize = Database.getInstance();
 
-sequelize.sync()
-  .catch(() => console.log("⚠️ DB non connectée, mais le serveur démarre..."))
-  .finally(() => {
-    app.listen(PORT, () => {
-      console.log("-------------------------------------------------------");
-      console.log(`🚀 Serveur prêt sur http://localhost:${PORT}`);
-      console.log(`🔐 Test Digest : http://localhost:${PORT}/api/admin/digest`);
-      console.log("-------------------------------------------------------");
-    });
-  });
+// --- DÉMARRAGE ---
+app.listen(PORT, () => {
+    console.log("-------------------------------------------------------");
+    console.log(`🚀 SERVEUR ACTIF SUR http://localhost:${PORT}`);
+    console.log(`🔐 Identifiants : admin / supersecret`);
+    console.log("-------------------------------------------------------");
+});
+
+// On ignore l'erreur DB pour que le serveur ne s'éteigne pas
+Database.getInstance().sync().catch(() => {});
