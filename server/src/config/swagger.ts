@@ -4,56 +4,31 @@ import swaggerJsdoc from "swagger-jsdoc";
 const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
-    info: {
-      title: "API Sécurisée - TP 07",
-      version: "1.0.0",
-    },
+    info: { title: "API JWT TP", version: "1.0.0" },
     components: {
       securitySchemes: {
-        basicAuth: { type: "http", scheme: "basic" },
-        digestAuth: { type: "http", scheme: "digest" },
-        // AJOUT DU JWT ICI
-        bearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
-        },
+        bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
       },
     },
     paths: {
-      "/api/admin/basic": {
-        get: { tags: ["Auth Classique"], security: [{ basicAuth: [] }], responses: { 200: { description: "OK" } } }
-      },
-      "/api/admin/digest": {
-        get: { tags: ["Auth Classique"], security: [{ digestAuth: [] }], responses: { 200: { description: "OK" } } }
-      },
-      // --- NOUVELLES ROUTES JWT ---
-      "/api/login": {
+      "/api/auth/login": {
         post: {
-          tags: ["JWT"],
-          summary: "Obtenir un Access Token",
-          requestBody: {
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    username: { type: "string", example: "admin" },
-                    password: { type: "string", example: "supersecret" }
-                  }
-                }
-              }
-            }
-          },
-          responses: { 200: { description: "Token généré" } }
+          tags: ["Auth"],
+          requestBody: { content: { "application/json": { schema: { type: "object", properties: { username: { type: "string", example: "student" }, password: { type: "string", example: "password123" } } } } } },
+          responses: { 200: { description: "OK" } }
         }
       },
-      "/api/admin/jwt": {
+      "/api/auth/me": {
         get: {
-          tags: ["JWT"],
-          summary: "Zone protégée par Token",
+          tags: ["Auth"],
           security: [{ bearerAuth: [] }],
-          responses: { 200: { description: "Accès autorisé" } }
+          responses: { 200: { description: "OK" } }
+        }
+      },
+      "/api/auth/refresh": {
+        post: {
+          tags: ["Auth"],
+          responses: { 200: { description: "OK" } }
         }
       }
     },
