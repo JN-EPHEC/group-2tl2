@@ -4,7 +4,7 @@ import swaggerJsdoc from "swagger-jsdoc";
 const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
-    info: { title: "API JWT TP", version: "1.0.0" },
+    info: { title: "TP JWT - Étape 2", version: "1.0.0" },
     components: {
       securitySchemes: {
         bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
@@ -13,21 +13,15 @@ const swaggerOptions = {
     paths: {
       "/api/auth/login": {
         post: {
-          tags: ["Auth"],
-          requestBody: { content: { "application/json": { schema: { type: "object", properties: { username: { type: "string", example: "student" }, password: { type: "string", example: "password123" } } } } } },
+          tags: ["Authentification"],
+          requestBody: { content: { "application/json": { schema: { type: "object", properties: { username: { type: "string" }, password: { type: "string" } } } } } },
           responses: { 200: { description: "OK" } }
         }
       },
-      "/api/auth/me": {
+      "/api/profile": {
         get: {
-          tags: ["Auth"],
+          tags: ["Utilisateur"],
           security: [{ bearerAuth: [] }],
-          responses: { 200: { description: "OK" } }
-        }
-      },
-      "/api/auth/refresh": {
-        post: {
-          tags: ["Auth"],
           responses: { 200: { description: "OK" } }
         }
       }
