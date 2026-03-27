@@ -3,12 +3,19 @@ import express, { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import cors from 'cors'; // NOUVEAU
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import { authenticateToken } from './middlewares/jwtAuth';
 
 dotenv.config();
 const app = express();
+
+// NOUVEAU : Autoriser React à parler à l'API
+app.use(cors({ 
+    origin: true, 
+    credentials: true 
+}));
 
 // Middlewares obligatoires
 app.use(express.json());
@@ -30,21 +37,18 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
 
     if (username === demoUser.username && password === demoUser.password) {
         
-        // MODIFICATION POUR LE TEST : "30s" au lieu de "15m"
         const accessToken = jwt.sign(
             { id: demoUser.id, username: demoUser.username, role: demoUser.role },
             process.env.JWT_ACCESS_SECRET as string,
-            { expiresIn: "30s" } 
+            { expiresIn: "15m" } // Remis à 15 minutes pour la suite
         );
 
-        // REFRESH TOKEN (7 jours)
         const refreshToken = jwt.sign(
             { id: demoUser.id, username: demoUser.username },
             process.env.JWT_REFRESH_SECRET as string,
             { expiresIn: "7d" }
         );
 
-        // Envoi du Cookie
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
             secure: false, 
@@ -70,7 +74,6 @@ app.post('/api/auth/refresh', (req: Request, res: Response) => {
             return res.status(403).json({ error: "Refresh Token invalide ou expiré." });
         }
 
-        // On redonne un token normal de 15 minutes
         const newAccessToken = jwt.sign(
             { id: user.id, username: user.username, role: user.role },
             process.env.JWT_ACCESS_SECRET as string,
