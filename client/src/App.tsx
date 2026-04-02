@@ -9,16 +9,16 @@ function App() {
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
 
-  // États pour l'Authentification (NOUVEAU)
+  // États pour l'Authentification
   const [loginUser, setLoginUser] = useState("student");
   const [loginPass, setLoginPass] = useState("password123");
   const [authMessage, setAuthMessage] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // ADRESSE DE TON API LOCALE (Modifié pour pointer sur ton API locale JWT)
+  // ADRESSE DE TON API
   const API_URL = "http://localhost:3000/api";
 
-  // --- NOUVEAU : GESTION DE LA CONNEXION ---
+  // --- GESTION DE LA CONNEXION ---
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -33,7 +33,6 @@ function App() {
         localStorage.setItem('accessToken', data.accessToken);
         setAuthMessage("✅ Connecté");
         setIsAuthenticated(true);
-        // Si connecté, on essaie de charger les données
         loadProfileAndData();
       } else {
         setAuthMessage("❌ " + data.error);
@@ -44,132 +43,150 @@ function App() {
     }
   };
 
-  // --- NOUVEAU : TEST DU PROFIL & CHARGEMENT DES DONNÉES ---
+  // --- CHARGEMENT DES DONNÉES ---
   const loadProfileAndData = async () => {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
     try {
-      // 1. On teste si le token est valide sur la route /profile
       const profileResponse = await fetch(`${API_URL}/profile`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (profileResponse.status === 401 || profileResponse.status === 403) {
-        setAuthMessage("⚠️ Token expiré, reconnecte-toi.");
         setIsAuthenticated(false);
         return;
       }
-
-      // 2. Si valide, on charge la liste (On simule ici si tu n'as pas de route /users protégée)
-      // Normalement, tu devrais taper sur une route protégée de ton API
-      console.log("Accès autorisé, on pourrait charger les utilisateurs ici.");
-      // Pour l'exemple visuel de ton TP, on met une donnée bidon si l'API users n'est pas prête :
-      setUsers([{ id: 1, username: "student", email: "student@test.com" }]);
-
+      setIsAuthenticated(true);
+      // On simule une donnée ou on appelle une route users si elle existe
+      setUsers([{ id: 1, username: loginUser, email: "user@lesarcs.com" }]);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // --- ANCIENNE FONCTION D'AJOUT (Adaptée pour envoyer le token) ---
   const handleAdd = () => {
     if (!nom || !email) return;
     const token = localStorage.getItem('accessToken');
-
-    fetch(`${API_URL}/users`, { // Assure-toi que cette route existe sur ton port 3000
+    fetch(`${API_URL}/users`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}` // Ajout du token
+        "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({ username: nom, email: email, password: "password123" })
     })
     .then((res) => {
       if (res.ok) {
-        setNom("");
-        setEmail("");
+        setNom(""); setEmail("");
         loadProfileAndData();
       } else {
-        alert("Action rejetée. Es-tu bien connecté ?");
+        alert("Action rejetée.");
       }
-    })
-    .catch(err => console.error(err));
+    });
   };
 
   return (
-    <div style={{ backgroundColor: '#f0f2f5', minHeight: '100vh', padding: '20px', fontFamily: 'sans-serif' }}>
-      <style>{`
-        .tp-card { background: white; padding: 20px; border-radius: 10px; max-width: 700px; margin: 0 auto 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .tp-table { width: 100%; max-width: 700px; margin: 0 auto; background: white; border-collapse: collapse; border-radius: 10px; overflow: hidden; }
-        .tp-th { background: #2c3e50; color: white; padding: 12px; text-align: left; }
-        .tp-td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
-      `}</style>
-
-      {/* --- PANNEAU DE CONNEXION --- */}
-      <div className="tp-card" style={{ borderLeft: '5px solid #3498db' }}>
-        <h2 style={{ marginTop: 0 }}>Sécurité JWT (Étape 1 React)</h2>
-        <form onSubmit={handleLogin} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <input 
-            style={{ padding: '8px', border: '1px solid #ccc' }}
-            value={loginUser} onChange={(e) => setLoginUser(e.target.value)} placeholder="User" 
-          />
-          <input 
-            style={{ padding: '8px', border: '1px solid #ccc' }} type="password"
-            value={loginPass} onChange={(e) => setLoginPass(e.target.value)} placeholder="Pass" 
-          />
-          <button type="submit" style={{ padding: '8px 15px', background: '#3498db', color: 'white', border: 'none', cursor: 'pointer' }}>
-            Login
-          </button>
-          <span style={{ fontWeight: 'bold' }}>{authMessage}</span>
-        </form>
-      </div>
-
-      {/* --- ANNUAIRE (Protégé) --- */}
-      <div style={{ opacity: isAuthenticated ? 1 : 0.5, pointerEvents: isAuthenticated ? 'auto' : 'none' }}>
-        <div className="tp-card">
-          <h1 style={{ marginTop: 0 }}>Annuaire Sécurisé</h1>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <input
-              style={{ flex: 1, padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
-              placeholder="Nom" value={nom} onChange={e => setNom(e.target.value)}
-            />
-            <input
-              style={{ flex: 1, padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
-              placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
-            />
-            <button
-              style={{ background: '#27ae60', color: 'white', border: 'none', padding: '0 20px', cursor: 'pointer', borderRadius: '5px' }}
-              onClick={handleAdd}
-            >
-              Ajouter
-            </button>
+    <div className="site-wrapper" style={{ fontFamily: 'sans-serif' }}>
+      
+      {/* 1. SECTION LOGIN (S'affiche si pas connecté) */}
+      {!isAuthenticated ? (
+        <div style={{ backgroundColor: '#f0f2f5', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ background: 'white', padding: '40px', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', textAlign: 'center' }}>
+            <img src="/logoarcs.png" alt="Logo" style={{ width: '150px', marginBottom: '20px' }} />
+            <h2>Accès Station Les Arcs</h2>
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <input 
+                style={{ padding: '12px', border: '1px solid #ccc', borderRadius: '5px' }}
+                value={loginUser} onChange={(e) => setLoginUser(e.target.value)} placeholder="Utilisateur" 
+              />
+              <input 
+                style={{ padding: '12px', border: '1px solid #ccc', borderRadius: '5px' }} type="password"
+                value={loginPass} onChange={(e) => setLoginPass(e.target.value)} placeholder="Mot de passe" 
+              />
+              <button type="submit" style={{ padding: '12px', background: '#2c3e50', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+                Entrer sur le site
+              </button>
+              <span style={{ color: authMessage.includes('❌') ? 'red' : 'green' }}>{authMessage}</span>
+            </form>
           </div>
         </div>
+      ) : (
+        
+        /* 2. LE SITE COMPLET (S'affiche si connecté) */
+        <>
+          <header>
+            <img src="/logoarcs.png" alt="Logo Les Arcs" />
+            <h1>Bienvenue, {loginUser}</h1>
+            <button onClick={() => { localStorage.removeItem('accessToken'); setIsAuthenticated(false); }} 
+                    style={{ float: 'right', marginTop: '-40px', padding: '5px 10px', cursor: 'pointer' }}>
+              Déconnexion
+            </button>
+          </header>
 
-        <table className="tp-table">
-          <thead>
-            <tr>
-              <th className="tp-th">NOM</th>
-              <th className="tp-th">EMAIL</th>
-              <th className="tp-th" style={{ textAlign: 'right' }}>ID</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.length > 0 ? (
-              users.map(u => (
-                <tr key={u.id}>
-                  <td className="tp-td" style={{ fontWeight: 'bold' }}>{u.username}</td>
-                  <td className="tp-td">{u.email}</td>
-                  <td className="tp-td" style={{ textAlign: 'right', color: '#999' }}>#{u.id}</td>
-                </tr>
-              ))
-            ) : (
-              <tr><td colSpan={3} className="tp-td" style={{ textAlign: 'center' }}>Connectez-vous pour voir les données</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          <nav>
+            <a href="#">Accueil</a>
+            <a href="#">Plan des pistes</a>
+            <a href="#">Forfait</a>
+          </nav>
+
+          <video src="/video.mp4" controls autoPlay loop muted style={{ width: '100%' }}></video>
+
+          <main style={{ padding: '20px' }}>
+            <h2>Les Arcs : La station</h2>
+            <p>Située en Savoie, au nord du Parc National de la Vanoise...</p>
+
+            {/* SECTION ANNUAIRE API INTEGRÉE AU SITE */}
+            <div style={{ background: '#f9f9f9', padding: '20px', borderRadius: '10px', border: '1px solid #ddd', margin: '20px 0' }}>
+                <h3>Gestion de l'Annuaire (API)</h3>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                    <input style={{ flex: 1, padding: '8px' }} placeholder="Nom" value={nom} onChange={e => setNom(e.target.value)} />
+                    <input style={{ flex: 1, padding: '8px' }} placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+                    <button style={{ background: '#27ae60', color: 'white', border: 'none', padding: '0 15px', borderRadius: '4px' }} onClick={handleAdd}>Ajouter</button>
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white' }}>
+                    <thead>
+                        <tr style={{ background: '#2c3e50', color: 'white' }}>
+                            <th style={{ padding: '10px', textAlign: 'left' }}>NOM</th>
+                            <th style={{ padding: '10px', textAlign: 'left' }}>EMAIL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {users.map(u => (
+                            <tr key={u.id} style={{ borderBottom: '1px solid #eee' }}>
+                                <td style={{ padding: '10px' }}>{u.username}</td>
+                                <td style={{ padding: '10px' }}>{u.email}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            <div className="stations">
+                <div className="station"><h3>Bourg-Saint-Maurice</h3><p>Les contemplatifs sont dans leur élément...</p></div>
+                <div className="station"><h3>Arc 1600</h3><p>Le site originel, moderne et convivial...</p></div>
+                <div className="station"><h3>Arc 1800</h3><p>Shopping, dancing, cocooning...</p></div>
+            </div>
+          </main>
+
+          <div className="naav">
+            <h2>Inscrivez-vous à notre newsletter</h2>
+          </div>
+          <form style={{ textAlign: 'center', padding: '20px' }}>
+            <input type="email" placeholder="Votre email" required style={{ padding: '10px', width: '250px' }} />
+            <button type="submit" style={{ padding: '10px 20px', background: '#2c3e50', color: 'white', border: 'none' }}>S'inscrire</button>
+          </form>
+
+          <section className="section" style={{ display: 'flex', justifyContent: 'center', gap: '20px', padding: '20px' }}>
+            <a href="https://facebook.com" target="_blank" rel="noreferrer"><img src="/facebook.png" width="50" alt="FB" /></a>
+            <a href="https://instagram.com" target="_blank" rel="noreferrer"><img src="/insta.png" width="50" alt="Insta" /></a>
+          </section>
+
+          <footer>
+            <p>&copy; 2024 Les Arcs. Tous droits réservés.</p>
+          </footer>
+        </>
+      )}
     </div>
   );
 }
