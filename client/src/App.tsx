@@ -1,193 +1,159 @@
-import React, { useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import HomeApp from "./Home"; 
 
-// Interface pour TypeScript
-interface User { id: number; username: string; email: string; role?: string; }
+// Interface pour typer nos données météo
+interface WeatherData {
+  temperature: number;
+  windspeed: number;
+  weathercode: number;
+}
 
-function App() {
-  // États pour l'Annuaire
-  const [users, setUsers] = useState<User[]>([]);
-  const [nom, setNom] = useState("");
-  const [email, setEmail] = useState("");
+// Fonction pour traduire le code météo en texte et emoji
+const getWeatherDescription = (code: number) => {
+  if (code === 0) return "Ensoleillé ☀️";
+  if (code === 1 || code === 2 || code === 3) return "Nuageux ⛅";
+  if (code === 45 || code === 48) return "Brouillard 🌫️";
+  if (code >= 51 && code <= 67) return "Pluie 🌧️";
+  if (code >= 71 && code <= 77) return "Neige ❄️";
+  if (code >= 80 && code <= 82) return "Averses 🌦️";
+  if (code >= 95) return "Orage ⛈️";
+  return "Inconnu 🌍";
+};
 
-  // États pour l'Authentification
-  const [loginUser, setLoginUser] = useState("student");
-  const [loginPass, setLoginPass] = useState("password123");
-  const [authMessage, setAuthMessage] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+const LandingPage = () => {
+  const [weather, setWeather] = useState<WeatherData | null>(null);
 
-  // ADRESSE DE TON API
-  const API_URL = "http://localhost:3000/api";
-
-  // --- GESTION DE LA CONNEXION ---
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: loginUser, password: loginPass })
-      });
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('accessToken', data.accessToken);
-        setAuthMessage("✅ Connecté");
-        setIsAuthenticated(true);
-        loadProfileAndData();
-      } else {
-        setAuthMessage("❌ " + data.error);
-        setIsAuthenticated(false);
-      }
-    } catch (error) {
-      setAuthMessage("❌ Erreur serveur");
-    }
-  };
-
-  // --- CHARGEMENT DES DONNÉES ---
-  const loadProfileAndData = async () => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
-
-    try {
-      const profileResponse = await fetch(`${API_URL}/profile`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (profileResponse.status === 401 || profileResponse.status === 403) {
-        setIsAuthenticated(false);
-        return;
-      }
-      setIsAuthenticated(true);
-      // On simule une donnée ou on appelle une route users si elle existe
-      setUsers([{ id: 1, username: loginUser, email: "user@lesarcs.com" }]);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleAdd = () => {
-    if (!nom || !email) return;
-    const token = localStorage.getItem('accessToken');
-    fetch(`${API_URL}/users`, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify({ username: nom, email: email, password: "password123" })
-    })
-    .then((res) => {
-      if (res.ok) {
-        setNom(""); setEmail("");
-        loadProfileAndData();
-      } else {
-        alert("Action rejetée.");
-      }
-    });
-  };
+  useEffect(() => {
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=45.5733&longitude=6.8043&current_weather=true")
+      .then(res => res.json())
+      .then(data => {
+        setWeather({
+          temperature: data.current_weather.temperature,
+          windspeed: data.current_weather.windspeed,
+          weathercode: data.current_weather.weathercode
+        });
+      })
+      .catch(err => console.error("Erreur météo:", err));
+  }, []);
 
   return (
-    <div className="site-wrapper" style={{ fontFamily: 'sans-serif' }}>
+    <div style={{ fontFamily: 'sans-serif', backgroundColor: '#f9f9f9', minHeight: '100vh' }}>
       
-      {/* 1. SECTION LOGIN (S'affiche si pas connecté) */}
-      {!isAuthenticated ? (
-        <div style={{ backgroundColor: '#f0f2f5', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <div style={{ background: 'white', padding: '40px', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', textAlign: 'center' }}>
-            <img src="/logoarcs.png" alt="Logo" style={{ width: '150px', marginBottom: '20px' }} />
-            <h2>Accès Station Les Arcs</h2>
-            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <input 
-                style={{ padding: '12px', border: '1px solid #ccc', borderRadius: '5px' }}
-                value={loginUser} onChange={(e) => setLoginUser(e.target.value)} placeholder="Utilisateur" 
-              />
-              <input 
-                style={{ padding: '12px', border: '1px solid #ccc', borderRadius: '5px' }} type="password"
-                value={loginPass} onChange={(e) => setLoginPass(e.target.value)} placeholder="Mot de passe" 
-              />
-              <button type="submit" style={{ padding: '12px', background: '#2c3e50', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-                Entrer sur le site
-              </button>
-              <span style={{ color: authMessage.includes('❌') ? 'red' : 'green' }}>{authMessage}</span>
-            </form>
+      {/* Barre de navigation SANS la météo */}
+      <nav style={{ 
+        background: '#2c3e50', 
+        padding: '15px 40px', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        color: 'white',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000
+      }}>
+        <div style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
+          <img src="/logoarcs.png" alt="Logo" style={{ width: '40px', background: 'white', padding: '5px', borderRadius: '5px' }} />
+          <Link to="/" style={{ color: 'white', textDecoration: 'none', fontWeight: 'bold', fontSize: '1.2em' }}>Accueil</Link>
+          <a href="#forfaits" style={{ color: '#ecf0f1', textDecoration: 'none', fontSize: '1.2em' }}>Forfaits</a>
+        </div>
+
+        <div>
+          <Link to="/app" style={{ 
+            background: '#27ae60', 
+            padding: '12px 30px', 
+            color: 'white', 
+            textDecoration: 'none', 
+            borderRadius: '5px', 
+            fontWeight: 'bold',
+            fontSize: '1.1em'
+          }}>
+            Connexion
+          </Link>
+        </div>
+      </nav>
+
+      <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+        <img src="/logoarcs.png" alt="Logo" style={{ width: '250px', marginBottom: '20px' }} />
+        <h1 style={{ color: '#2c3e50', fontSize: '3em', marginBottom: '30px' }}>Bienvenue à la Station Les Arcs</h1>
+        
+        {/* LA MÉTÉO COMPLÈTE CENTRÉE ET EN GRAND */}
+        <div style={{ 
+          display: 'inline-flex',
+          flexDirection: 'column',
+          alignItems: 'center', 
+          background: '#34495e', 
+          color: 'white', 
+          padding: '25px 60px', 
+          borderRadius: '20px', 
+          marginBottom: '40px', 
+          boxShadow: '0 8px 20px rgba(0,0,0,0.2)' 
+        }}>
+          <span style={{ fontSize: '1.2em', marginBottom: '10px', color: '#bdc3c7' }}>🏔️ Conditions en direct aux Arcs</span>
+          {weather ? (
+            <div style={{ display: 'flex', gap: '40px', alignItems: 'center', marginTop: '10px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '1em', color: '#ecf0f1', display: 'block' }}>Température</span>
+                <strong style={{ fontSize: '2.5em' }}>{weather.temperature}°C</strong>
+              </div>
+              <div style={{ width: '2px', height: '50px', background: 'rgba(255,255,255,0.2)' }}></div>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '1em', color: '#ecf0f1', display: 'block' }}>Ciel</span>
+                <strong style={{ fontSize: '2em' }}>{getWeatherDescription(weather.weathercode)}</strong>
+              </div>
+              <div style={{ width: '2px', height: '50px', background: 'rgba(255,255,255,0.2)' }}></div>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '1em', color: '#ecf0f1', display: 'block' }}>Vent</span>
+                <strong style={{ fontSize: '2em' }}>{weather.windspeed} km/h 💨</strong>
+              </div>
+            </div>
+          ) : (
+            <strong style={{ fontSize: '1.8em' }}>Chargement des données météo...</strong>
+          )}
+        </div>
+
+        <p style={{ fontSize: '1.4em', maxWidth: '800px', margin: '0 auto', lineHeight: '1.6', color: '#555' }}>
+          Découvrez l'un des plus grands domaines skiables au monde. 
+          Espaces débutants, pistes mythiques et paysages à couper le souffle vous attendent au cœur de la Savoie.
+        </p>
+      </div>
+
+      <main id="forfaits" style={{ padding: '60px 20px', maxWidth: '1200px', margin: '0 auto' }}>
+        <h2 style={{ textAlign: 'center', color: '#2c3e50', fontSize: '2.5em', marginBottom: '40px' }}>Nos Forfaits Paradiski</h2>
+        
+        <div className="stations" style={{ display: 'flex', gap: '30px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className="station" style={{ flex: 1, border: '1px solid #ddd', padding: '40px 20px', background: 'white', textAlign: 'center', borderRadius: '15px', minWidth: '300px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+            <h3 style={{ color: '#2980b9', fontSize: '2em', margin: '0' }}>Pass 1 Jour</h3>
+            <p style={{ fontSize: '3em', fontWeight: 'bold', margin: '20px 0', color: '#2c3e50' }}>65 €</p>
+            <p style={{ fontSize: '1.2em', color: '#7f8c8d' }}>Accès illimité au domaine pour la journée.</p>
+          </div>
+
+          <div className="station" style={{ flex: 1, border: 'none', padding: '40px 20px', background: '#2c3e50', color: 'white', textAlign: 'center', borderRadius: '15px', minWidth: '300px', transform: 'scale(1.05)', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ color: '#f1c40f', fontSize: '2em', margin: '0' }}>Pass 6 Jours</h3>
+            <p style={{ fontSize: '3em', fontWeight: 'bold', margin: '20px 0' }}>330 €</p>
+            <p style={{ fontSize: '1.2em', color: '#bdc3c7' }}>Le classique pour une semaine de ski parfaite.</p>
+          </div>
+
+          <div className="station" style={{ flex: 1, border: '1px solid #ddd', padding: '40px 20px', background: 'white', textAlign: 'center', borderRadius: '15px', minWidth: '300px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+            <h3 style={{ color: '#2980b9', fontSize: '2em', margin: '0' }}>Pass Saison</h3>
+            <p style={{ fontSize: '3em', fontWeight: 'bold', margin: '20px 0', color: '#2c3e50' }}>950 €</p>
+            <p style={{ fontSize: '1.2em', color: '#7f8c8d' }}>Skiez tout l'hiver sans aucune limite.</p>
           </div>
         </div>
-      ) : (
-        
-        /* 2. LE SITE COMPLET (S'affiche si connecté) */
-        <>
-          <header>
-            <img src="/logoarcs.png" alt="Logo Les Arcs" />
-            <h1>Bienvenue, {loginUser}</h1>
-            <button onClick={() => { localStorage.removeItem('accessToken'); setIsAuthenticated(false); }} 
-                    style={{ float: 'right', marginTop: '-40px', padding: '5px 10px', cursor: 'pointer' }}>
-              Déconnexion
-            </button>
-          </header>
-
-          <nav>
-            <a href="#">Accueil</a>
-            <a href="#">Plan des pistes</a>
-            <a href="#">Forfait</a>
-          </nav>
-
-          <video src="/video.mp4" controls autoPlay loop muted style={{ width: '100%' }}></video>
-
-          <main style={{ padding: '20px' }}>
-            <h2>Les Arcs : La station</h2>
-            <p>Située en Savoie, au nord du Parc National de la Vanoise...</p>
-
-            {/* SECTION ANNUAIRE API INTEGRÉE AU SITE */}
-            <div style={{ background: '#f9f9f9', padding: '20px', borderRadius: '10px', border: '1px solid #ddd', margin: '20px 0' }}>
-                <h3>Gestion de l'Annuaire (API)</h3>
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                    <input style={{ flex: 1, padding: '8px' }} placeholder="Nom" value={nom} onChange={e => setNom(e.target.value)} />
-                    <input style={{ flex: 1, padding: '8px' }} placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-                    <button style={{ background: '#27ae60', color: 'white', border: 'none', padding: '0 15px', borderRadius: '4px' }} onClick={handleAdd}>Ajouter</button>
-                </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white' }}>
-                    <thead>
-                        <tr style={{ background: '#2c3e50', color: 'white' }}>
-                            <th style={{ padding: '10px', textAlign: 'left' }}>NOM</th>
-                            <th style={{ padding: '10px', textAlign: 'left' }}>EMAIL</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {users.map(u => (
-                            <tr key={u.id} style={{ borderBottom: '1px solid #eee' }}>
-                                <td style={{ padding: '10px' }}>{u.username}</td>
-                                <td style={{ padding: '10px' }}>{u.email}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            <div className="stations">
-                <div className="station"><h3>Bourg-Saint-Maurice</h3><p>Les contemplatifs sont dans leur élément...</p></div>
-                <div className="station"><h3>Arc 1600</h3><p>Le site originel, moderne et convivial...</p></div>
-                <div className="station"><h3>Arc 1800</h3><p>Shopping, dancing, cocooning...</p></div>
-            </div>
-          </main>
-
-          <div className="naav">
-            <h2>Inscrivez-vous à notre newsletter</h2>
-          </div>
-          <form style={{ textAlign: 'center', padding: '20px' }}>
-            <input type="email" placeholder="Votre email" required style={{ padding: '10px', width: '250px' }} />
-            <button type="submit" style={{ padding: '10px 20px', background: '#2c3e50', color: 'white', border: 'none' }}>S'inscrire</button>
-          </form>
-
-          <section className="section" style={{ display: 'flex', justifyContent: 'center', gap: '20px', padding: '20px' }}>
-            <a href="https://facebook.com" target="_blank" rel="noreferrer"><img src="/facebook.png" width="50" alt="FB" /></a>
-            <a href="https://instagram.com" target="_blank" rel="noreferrer"><img src="/insta.png" width="50" alt="Insta" /></a>
-          </section>
-
-          <footer>
-            <p>&copy; 2024 Les Arcs. Tous droits réservés.</p>
-          </footer>
-        </>
-      )}
+      </main>
     </div>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/app" element={<HomeApp />} />
+      </Routes>
+    </Router>
   );
 }
 
