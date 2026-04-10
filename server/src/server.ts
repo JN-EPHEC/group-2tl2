@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { authenticateToken } from './middlewares/jwtAuth';
+import User from './models/User'; 
 
 dotenv.config();
 const app = express();
@@ -14,11 +15,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 const demoUser = { id: 1, username: "student", password: "password123", role: "admin" };
-let usersAnnuaire = [
-    { id: 1, username: "student", email: "user@lesarcs.com", status: "Actif" },
-    { id: 2, username: "piste", email: "pistes@lesarcs.com", status: "Actif" }
-];
 
+// --- ROUTES AUTH ---
 app.post('/api/auth/login', (req: Request, res: Response) => {
     const { username, password } = req.body;
     if (username === demoUser.username && password === demoUser.password) {
@@ -38,21 +36,49 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
     return res.status(401).json({ error: "Identifiants invalides." });
 });
 
-app.post('/api/auth/logout', (req: Request, res: Response) => {
-    res.clearCookie("refreshToken");
-    return res.status(200).json({ message: "Déconnecté." });
+// --- ROUTES USERS ---
+
+app.get('/api/users', authenticateToken, async (req: Request, res: Response) => {
+    try {
+        const users = await User.findAll(); 
+        // IMPORTANT: Si ton front-end attend 'username' mais que la base a 'name', 
+        // on peut transformer les données ici pour ne pas casser l'affichage.
+        const formattedUsers = users.map((u: any) => ({
+            id: u.id,
+            username: u.name || u.nom, // Gère les deux cas
+            email: u.email,
+            status: "Actif"
+        }));
+        res.status(200).json(formattedUsers);
+    } catch (error) {
+        console.error("Erreur GET:", error);
+        res.status(500).json([]); // Envoie un tableau vide pour éviter la page blanche
+    }
 });
 
-app.get('/api/users', authenticateToken, (req: Request, res: Response) => {
-    res.status(200).json(usersAnnuaire);
-});
-
-app.post('/api/users', authenticateToken, (req: Request, res: Response) => {
+app.post('/api/users', authenticateToken, async (req: Request, res: Response) => {
     const { username, email } = req.body;
     if (!username || !email) return res.status(400).json({ error: "Champs requis." });
-    const newUser = { id: Date.now(), username, email, status: "Nouveau" };
-    usersAnnuaire.push(newUser);
-    res.status(201).json(newUser);
+
+    try {
+        const newUser = await User.create({ 
+            name: username, // Utilise 'name' comme vu dans tes logs PostgreSQL
+            email: email,
+            password: "default_password_123" // Ajoute un password par défaut car ta base l'exige (NOT NULL)
+        } as any); 
+        res.status(201).json(newUser);
+    } catch (error) {
+        console.error("Erreur POST:", error);
+        res.status(500).json({ error: "Erreur base de données" });
+    }
 });
 
-app.listen(PORT, () => console.log(`🚀 SERVEUR: http://localhost:${PORT}`));
+// --- SYNC ET START ---
+User.sync({ alter: true }).then(() => {
+    console.log("✅ Connecté à PostgreSQL (Supabase)");
+    app.listen(PORT, () => {
+        console.log(`🚀 SERVEUR: http://localhost:${PORT}`);
+    });
+}).catch(err => {
+    console.error("❌ Erreur de connexion base de données:", err);
+});
