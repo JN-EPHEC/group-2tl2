@@ -34,7 +34,7 @@ User.init(
     },
     password: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: false, // AUCUNE defaultValue ici pour ne pas forcer "default_password_123"
     },
     createdAt: {
       type: DataTypes.DATE,

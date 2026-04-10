@@ -5,10 +5,10 @@ export default function HomeApp() {
   const [users, setUsers] = useState<{id: number, username: string, email: string}[]>([]);
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState(""); 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [msg, setMsg] = useState("");
 
-  // VARIABLES POUR LIRE CE QUE TU TAPES VRAIMENT
   const [loginUser, setLoginUser] = useState("");
   const [loginPass, setLoginPass] = useState("");
 
@@ -20,7 +20,9 @@ export default function HomeApp() {
 
   const loadPersonnel = async (token: string) => {
     try {
-      const response = await fetch(`${API_URL}/users`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const response = await fetch(`${API_URL}/users`, { 
+        headers: { 'Authorization': `Bearer ${token}` } 
+      });
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
@@ -35,7 +37,6 @@ export default function HomeApp() {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // ICI C'EST CORRIGÉ : On envoie tes vraies frappes au clavier
         body: JSON.stringify({ username: loginUser, password: loginPass })
       });
       const data = await res.json();
@@ -50,20 +51,49 @@ export default function HomeApp() {
   };
 
   const handleAdd = async () => {
-    if (!nom || !email) return;
+    if (!nom || !email || !password) {
+        alert("Veuillez remplir Nom, Email ET Mot de passe");
+        return;
+    }
     const token = localStorage.getItem('accessToken');
-    if (!token) return;
     try {
       const res = await fetch(`${API_URL}/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ username: nom, email: email })
+        body: JSON.stringify({ username: nom, email: email, password: password }) 
       });
       if (res.ok) {
         setNom("");
         setEmail("");
-        loadPersonnel(token);
+        setPassword("");
+        loadPersonnel(token!);
       }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Supprimer ce collaborateur ?")) return;
+    const token = localStorage.getItem('accessToken');
+    try {
+      const res = await fetch(`${API_URL}/users/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) setUsers(users.filter(u => u.id !== id));
+    } catch (err) { console.error(err); }
+  };
+
+  const handleUpdatePass = async (id: number) => {
+    const newP = prompt("Entrez le nouveau mot de passe :");
+    if (!newP) return;
+    const token = localStorage.getItem('accessToken');
+    try {
+      const res = await fetch(`${API_URL}/users/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ newPassword: newP })
+      });
+      if (res.ok) alert("Mot de passe mis à jour !");
     } catch (err) { console.error(err); }
   };
 
@@ -73,24 +103,9 @@ export default function HomeApp() {
         <form onSubmit={handleLogin} style={{ background: 'white', padding: '60px', borderRadius: '30px', boxShadow: '0 25px 60px rgba(0,0,0,0.1)', width: '460px', textAlign: 'center' }}>
           <img src="/logoarcs.png" alt="Logo" style={{ width: '160px', marginBottom: '30px' }} />
           <h2 style={{ color: '#2c3e50', fontSize: '2.2em', marginBottom: '35px', fontWeight: 'bold' }}>INTRANET SÉCURISÉ</h2>
-          
-          <input 
-            style={{ width: '100%', padding: '18px', marginBottom: '20px', border: '1px solid #ddd', borderRadius: '12px', fontSize: '1.1em', boxSizing: 'border-box' }} 
-            placeholder="Identifiant" 
-            value={loginUser} 
-            onChange={e => setLoginUser(e.target.value)} 
-          />
-          <input 
-            style={{ width: '100%', padding: '18px', marginBottom: '30px', border: '1px solid #ddd', borderRadius: '12px', fontSize: '1.1em', boxSizing: 'border-box' }} 
-            type="password" 
-            placeholder="Mot de passe" 
-            value={loginPass} 
-            onChange={e => setLoginPass(e.target.value)} 
-          />
-          
-          <button type="submit" style={{ width: '100%', padding: '20px', background: '#2c3e50', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.3em' }}>
-            OUVRIR MA SESSION
-          </button>
+          <input style={{ width: '100%', padding: '18px', marginBottom: '20px', border: '1px solid #ddd', borderRadius: '12px', fontSize: '1.1em', boxSizing: 'border-box' }} placeholder="Identifiant" value={loginUser} onChange={e => setLoginUser(e.target.value)} />
+          <input style={{ width: '100%', padding: '18px', marginBottom: '30px', border: '1px solid #ddd', borderRadius: '12px', fontSize: '1.1em', boxSizing: 'border-box' }} type="password" placeholder="Mot de passe" value={loginPass} onChange={e => setLoginPass(e.target.value)} />
+          <button type="submit" style={{ width: '100%', padding: '20px', background: '#2c3e50', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.3em' }}>OUVRIR MA SESSION</button>
           {msg && <p style={{ color: '#e74c3c', marginTop: '25px', fontWeight: 'bold' }}>{msg}</p>}
         </form>
       </div>
@@ -109,28 +124,34 @@ export default function HomeApp() {
         <Link to="/" style={{ color: 'white', textDecoration: 'none', fontWeight: 'bold' }}>⬅ REVENIR AU SITE PUBLIC</Link>
       </nav>
 
-      <main style={{ padding: '60px', maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{ background: '#ecf0f1', padding: '50px', borderRadius: '30px', marginBottom: '70px', border: '1px solid #dcdde1' }}>
-          <h3 style={{ marginBottom: '35px', fontSize: '2em', color: '#2c3e50' }}>AJOUTER UN COLLABORATEUR</h3>
-          <div style={{ display: 'flex', gap: '30px' }}>
-            <input style={{ flex: 1, padding: '20px', borderRadius: '12px', border: '1px solid #ccc', fontSize: '1.2em' }} placeholder="Nom complet" value={nom} onChange={e => setNom(e.target.value)} />
-            <input style={{ flex: 1, padding: '20px', borderRadius: '12px', border: '1px solid #ccc', fontSize: '1.2em' }} placeholder="Email professionnel" value={email} onChange={e => setEmail(e.target.value)} />
-            <button style={{ padding: '0 60px', background: '#27ae60', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.2em' }} onClick={handleAdd}>ENREGISTRER</button>
+      <main style={{ padding: '40px', maxWidth: '1400px', margin: '0 auto' }}>
+        <div style={{ background: '#ecf0f1', padding: '40px', borderRadius: '30px', marginBottom: '40px', border: '1px solid #dcdde1' }}>
+          <h3 style={{ marginBottom: '25px', color: '#2c3e50' }}>CRÉER UN COMPTE COLLABORATEUR</h3>
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+            <input style={{ flex: 1, padding: '15px', borderRadius: '10px', border: '1px solid #ccc' }} placeholder="Nom" value={nom} onChange={e => setNom(e.target.value)} />
+            <input style={{ flex: 1, padding: '15px', borderRadius: '10px', border: '1px solid #ccc' }} placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+            <input style={{ flex: 1, padding: '15px', borderRadius: '10px', border: '1px solid #ccc' }} type="password" placeholder="Mot de passe" value={password} onChange={e => setPassword(e.target.value)} />
+            <button style={{ padding: '0 40px', background: '#27ae60', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }} onClick={handleAdd}>ENREGISTRER</button>
           </div>
         </div>
 
-        <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 15px 40px rgba(0,0,0,0.05)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
           <thead>
             <tr style={{ background: '#2c3e50', color: 'white' }}>
-              <th style={{ padding: '30px', textAlign: 'left' }}>NOM COMPLET</th>
-              <th style={{ padding: '30px', textAlign: 'left' }}>EMAIL</th>
+              <th style={{ padding: '20px', textAlign: 'left' }}>NOM</th>
+              <th style={{ padding: '20px', textAlign: 'left' }}>EMAIL</th>
+              <th style={{ padding: '20px', textAlign: 'center' }}>ACTIONS</th>
             </tr>
           </thead>
           <tbody>
             {users.map(u => (
               <tr key={u.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '30px', fontWeight: 'bold', color: '#2c3e50', fontSize: '1.2em' }}>{u.username.toUpperCase()}</td>
-                <td style={{ padding: '30px', color: '#7f8c8d', fontSize: '1.1em' }}>{u.email}</td>
+                <td style={{ padding: '20px', fontWeight: 'bold' }}>{u.username ? u.username.toUpperCase() : "SANS NOM"}</td>
+                <td style={{ padding: '20px' }}>{u.email}</td>
+                <td style={{ padding: '20px', textAlign: 'center' }}>
+                  <button onClick={() => handleUpdatePass(u.id)} style={{ marginRight: '10px', padding: '8px 15px', borderRadius: '5px', border: '1px solid #2c3e50', cursor: 'pointer' }}>Modifier MDP 🔑</button>
+                  <button onClick={() => handleDelete(u.id)} style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer' }}>Supprimer</button>
+                </td>
               </tr>
             ))}
           </tbody>
