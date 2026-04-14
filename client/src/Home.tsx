@@ -52,7 +52,7 @@ export default function HomeApp() {
 
   const handleAdd = async () => {
     if (!nom || !email || !password) {
-        alert("Veuillez remplir Nom, Email ET Mot de passe");
+        alert("Veuillez remplir un Nom, Email ET Mot de passe");
         return;
     }
     const token = localStorage.getItem('accessToken');
