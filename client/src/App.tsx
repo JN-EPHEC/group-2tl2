@@ -46,9 +46,11 @@ const LandingPage = () => {
         <div style={{ display: 'flex', gap: '50px', justifyContent: 'center' }}>
           <div style={{ flex: 1, background: 'white', padding: '80px 40px', textAlign: 'center', borderRadius: '30px', border: '2px solid #eee' }}>
             <h3 style={{ fontSize: '2.5em' }}>PASS JOURNÉE</h3><p style={{ fontSize: '5em', fontWeight: 'bold', color: '#2c3e50' }}>65 €</p>
+            <button style={{ background: '#2c3e50', color: 'white', border: 'none', padding: '15px 35px', fontSize: '1.2em', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer' }}>S'INSCRIRE</button>
           </div>
           <div style={{ flex: 1.2, background: '#2c3e50', color: 'white', padding: '100px 40px', textAlign: 'center', borderRadius: '30px', transform: 'scale(1.1)', boxShadow: '0 30px 60px rgba(0,0,0,0.2)' }}>
             <h3 style={{ fontSize: '2.8em', color: '#f1c40f' }}>PASS 6 JOURS</h3><p style={{ fontSize: '6em', fontWeight: 'bold' }}>330 €</p>
+            <button style={{ background: '#f1c40f', color: 'white', border: 'none', padding: '15px 35px', fontSize: '1.2em', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer' }}>S'INSCRIRE</button>
           </div>
         </div>
       </main>
