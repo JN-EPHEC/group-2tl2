@@ -79,7 +79,7 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/app" element={<Panel />} />
+        <Route path="/panel" element={<Panel />} />
       </Routes>
     </Router>
   );
