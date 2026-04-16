@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import HomeApp from "./Home";
+import Panel from "./Panel";
 import "./App.css";
 
 const LandingPage = () => {
@@ -79,7 +79,7 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/app" element={<HomeApp />} />
+        <Route path="/app" element={<Panel />} />
       </Routes>
     </Router>
   );
