@@ -1,0 +1,189 @@
+/* ── Layout global ── */
+.landing-page {
+  font-family: Arial, sans-serif;
+  background-color: #f0f4f8;
+  min-height: 100vh;
+}
+
+/* ── Navigation ── */
+.nav {
+  background: #2c3e50;
+  padding: 20px 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.nav-left {
+  display: flex;
+  gap: 50px;
+  align-items: center;
+}
+
+.nav-logo {
+  width: 60px;
+  background: white;
+  padding: 5px;
+  border-radius: 10px;
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1.3em;
+}
+
+.nav-link-sm {
+  color: white;
+  text-decoration: none;
+  font-size: 1.2em;
+}
+
+.nav-btn-pro {
+  background: #2ecc71;
+  padding: 15px 35px;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+/* ── Hero ── */
+.hero {
+  text-align: center;
+  padding: 100px 20px;
+}
+
+.hero-logo {
+  width: 300px;
+  margin-bottom: 40px;
+}
+
+.hero-title {
+  font-size: 4.5em;
+  color: #2c3e50;
+  font-weight: 900;
+  margin-bottom: 40px;
+}
+
+/* ── Météo ── */
+.weather-card {
+  display: inline-flex;
+  gap: 80px;
+  background: #34495e;
+  color: white;
+  padding: 60px 120px;
+  border-radius: 40px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.weather-item {
+  text-align: center;
+}
+
+.weather-label {
+  font-size: 1.5em;
+  opacity: 0.8;
+}
+
+.weather-value {
+  font-size: 4em;
+}
+
+.weather-divider {
+  width: 3px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.weather-loading {
+  font-size: 2em;
+}
+
+/* ── Forfaits ── */
+.forfaits {
+  padding: 100px 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.forfaits-title {
+  text-align: center;
+  font-size: 3.5em;
+  margin-bottom: 80px;
+  color: #2c3e50;
+}
+
+.forfaits-grid {
+  display: flex;
+  gap: 50px;
+  justify-content: center;
+}
+
+/* ── Carte forfait ── */
+.forfait-card {
+  flex: 1;
+  background: white;
+  padding: 80px 40px;
+  text-align: center;
+  border-radius: 30px;
+  border: 2px solid #eee;
+}
+
+.forfait-card-featured {
+  flex: 1.2;
+  background: #2c3e50;
+  color: white;
+  padding: 100px 40px;
+  text-align: center;
+  border-radius: 30px;
+  transform: scale(1.1);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+}
+
+.forfait-title {
+  font-size: 2.5em;
+}
+
+.forfait-title-featured {
+  font-size: 2.8em;
+  color: #f1c40f;
+}
+
+.forfait-price {
+  font-size: 5em;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.forfait-price-featured {
+  font-size: 6em;
+  font-weight: bold;
+}
+
+.forfait-btn {
+  background: #2c3e50;
+  color: white;
+  border: none;
+  padding: 15px 35px;
+  font-size: 1.2em;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.forfait-btn-featured {
+  background: #f1c40f;
+  color: white;
+  border: none;
+  padding: 15px 35px;
+  font-size: 1.2em;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+}
