@@ -51,17 +51,22 @@ const LandingPage = () => {
       </section>
 
       <main id="forfaits" className="forfaits">
-        <h2 className="forfaits-title">NOS OFFRES</h2>
+        <h2 className="forfaits-title">NOS FORFAITS</h2>
+
         <div className="forfaits-grid">
           <div className="forfait-card">
-            <h3 className="forfait-title">PASS JOURNÉE</h3>
+            <h3 className="forfait-title">PASS 1 JOUR</h3>
             <p className="forfait-price">65 €</p>
-            <button className="forfait-btn">S'INSCRIRE</button>
           </div>
+
           <div className="forfait-card-featured">
             <h3 className="forfait-title-featured">PASS 6 JOURS</h3>
             <p className="forfait-price-featured">330 €</p>
-            <button className="forfait-btn-featured">S'INSCRIRE</button>
+          </div>
+
+          <div className="forfait-card">
+            <h3 className="forfait-title">PASS SAISON</h3>
+            <p className="forfait-price">950 €</p>
           </div>
         </div>
       </main>
