@@ -1,0 +1,197 @@
+/* ── Login ── */
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: #f4f7f6;
+}
+
+.login-form {
+  background: white;
+  padding: 60px;
+  border-radius: 30px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.1);
+  width: 460px;
+  text-align: center;
+}
+
+.login-logo {
+  width: 160px;
+  margin-bottom: 30px;
+}
+
+.login-title {
+  color: #2c3e50;
+  font-size: 2.2em;
+  margin-bottom: 35px;
+  font-weight: bold;
+}
+
+.login-input {
+  width: 100%;
+  padding: 18px;
+  margin-bottom: 20px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  font-size: 1.1em;
+  box-sizing: border-box;
+}
+
+.login-input-last {
+  width: 100%;
+  padding: 18px;
+  margin-bottom: 30px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  font-size: 1.1em;
+  box-sizing: border-box;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 20px;
+  background: #2c3e50;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1.3em;
+}
+
+.login-error {
+  color: #e74c3c;
+  margin-top: 25px;
+  font-weight: bold;
+}
+
+/* ── Layout panel ── */
+.panel-page {
+  font-family: sans-serif;
+  background-color: #f9fafb;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.panel-header {
+  padding: 25px 60px;
+  background: white;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-header-logo {
+  width: 110px;
+}
+
+.panel-header-title {
+  color: #2c3e50;
+}
+
+.panel-logout-btn {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* ── Nav ── */
+.panel-nav {
+  background: #34495e;
+  padding: 15px 60px;
+}
+
+.panel-nav-link {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+/* ── Contenu principal ── */
+.panel-main {
+  padding: 60px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ── Formulaire ajout collaborateur ── */
+.panel-add-section {
+  background: #ecf0f1;
+  padding: 50px;
+  border-radius: 30px;
+  margin-bottom: 70px;
+  border: 1px solid #dcdde1;
+}
+
+.panel-add-title {
+  margin-bottom: 35px;
+  font-size: 2em;
+  color: #2c3e50;
+}
+
+.panel-add-form {
+  display: flex;
+  gap: 30px;
+}
+
+.panel-add-input {
+  flex: 1;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  font-size: 1.2em;
+}
+
+.panel-add-btn {
+  padding: 0 60px;
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1.2em;
+}
+
+/* ── Table ── */
+.panel-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.05);
+}
+
+.panel-table thead tr {
+  background: #2c3e50;
+  color: white;
+}
+
+.panel-table th {
+  padding: 30px;
+  text-align: left;
+}
+
+.panel-table tbody tr {
+  border-bottom: 1px solid #eee;
+}
+
+.panel-table-name {
+  padding: 30px;
+  font-weight: bold;
+  color: #2c3e50;
+  font-size: 1.2em;
+}
+
+.panel-table-email {
+  padding: 30px;
+  color: #7f8c8d;
+  font-size: 1.1em;
+}
