@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-export default function HomeApp() {
+export default function Panel() {
   const [users, setUsers] = useState<{id: number, username: string, email: string}[]>([]);
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
