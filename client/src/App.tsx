@@ -25,7 +25,7 @@ const LandingPage = () => {
           <Link to="/" className="nav-link">ACCUEIL</Link>
           <a href="#forfaits" className="nav-link-sm">FORFAITS</a>
         </div>
-        <Link to="/panel" className="nav-btn-pro">ESPACE PRO</Link>
+        <Link to="/panel" className="nav-btn-pro">MON ESPACE</Link>
       </nav>
 
       <section className="hero">
