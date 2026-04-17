@@ -172,3 +172,41 @@
   font-weight: bold;
   margin: 30px 0;
 }
+
+.forfait-btn {
+  display: inline-block;
+  background: #2c3e50;
+  color: white;
+  border: none;
+  padding: 14px 36px;
+  border-radius: 10px;
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  margin-top: 10px;
+  transition: background 0.2s;
+}
+
+.forfait-btn:hover {
+  background: #1a252f;
+}
+
+.forfait-btn-featured {
+  display: inline-block;
+  background: #f1c40f;
+  color: #2c3e50;
+  border: none;
+  padding: 14px 36px;
+  border-radius: 10px;
+  font-size: 1.05em;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  margin-top: 10px;
+  transition: background 0.2s;
+}
+
+.forfait-btn-featured:hover {
+  background: #d4ac0d;
+}

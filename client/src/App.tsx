@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Panel from "./Panel";
+import Checkout from "./Checkout";
 import "./App.css";
 
 const LandingPage = () => {
@@ -57,16 +58,19 @@ const LandingPage = () => {
           <div className="forfait-card">
             <h3 className="forfait-title">PASS 1 JOUR</h3>
             <p className="forfait-price">65 €</p>
+            <Link to="/checkout" state={{ forfait: "PASS 1 JOUR", prix: "65" }} className="forfait-btn">SOUSCRIRE</Link>
           </div>
 
           <div className="forfait-card-featured">
             <h3 className="forfait-title-featured">PASS 6 JOURS</h3>
             <p className="forfait-price-featured">330 €</p>
+            <Link to="/checkout" state={{ forfait: "PASS 6 JOURS", prix: "330" }} className="forfait-btn-featured">SOUSCRIRE</Link>
           </div>
 
           <div className="forfait-card">
             <h3 className="forfait-title">PASS SAISON</h3>
             <p className="forfait-price">950 €</p>
+            <Link to="/checkout" state={{ forfait: "PASS SAISON", prix: "950" }} className="forfait-btn">SOUSCRIRE</Link>
           </div>
         </div>
       </main>
@@ -80,6 +84,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/panel" element={<Panel />} />
+        <Route path="/checkout" element={<Checkout />} />
       </Routes>
     </Router>
   );
