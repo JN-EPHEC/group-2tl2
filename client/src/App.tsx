@@ -57,7 +57,10 @@ const LandingPage = () => {
             <>
               <div style={{ textAlign: 'center' }}>
                 <span style={{ fontSize: '1.2em', color: '#bdc3c7' }}>TEMPÉRATURE</span><br/>
-                <strong style={{ fontSize: '3.5em' }}>{weather.temperature}°C</strong>
+                <strong style={{ fontSize: '3.5em' }}>
+                  {weather.temperature}°C{" "}
+                  {weather.temperature <= 0 ? "🥶" : weather.temperature <= 5 ? "❄️" : weather.temperature <= 12 ? "🌤️" : weather.temperature <= 20 ? "☀️" : "🔥"}
+                </strong>
               </div>
               <div style={{ width: '2px', background: 'rgba(255,255,255,0.1)' }}></div>
               <div style={{ textAlign: 'center' }}>
