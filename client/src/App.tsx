@@ -13,7 +13,7 @@ const LandingPage = () => {
   }, []);
 
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f0f4f7', minHeight: '100vh' }}>
+    <div style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f0f4f7', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       
       {/* Barre de navigation */}
       <nav style={{ background: '#2c3e50', padding: '15px 50px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
@@ -29,7 +29,7 @@ const LandingPage = () => {
       </nav>
 
       {/* Section Principale */}
-      <section style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <section style={{ textAlign: 'center', padding: '60px 20px', flex: 1 }}>
         <img src="/logoarcs.png" alt="Logo Large" style={{ width: '250px', marginBottom: '30px' }} />
         <h1 style={{ fontSize: '4em', color: '#2c3e50', fontWeight: '900', marginBottom: '20px', textTransform: 'uppercase' }}>LES ARCS 1800</h1>
         
@@ -75,32 +75,49 @@ const LandingPage = () => {
       </section>
 
       {/* Section Forfaits */}
-      <main id="forfaits" style={{ padding: '70px 40px 100px 40px', maxWidth: '1300px', margin: '0 auto' }}>
+      <main id="forfaits" style={{ padding: '70px 40px 100px 40px', maxWidth: '1300px', margin: '0 auto', width: '100%' }}>
         <h2 style={{ textAlign: 'center', fontSize: '3em', color: '#2c3e50', marginBottom: '60px' }}>NOS FORFAITS</h2>
         
         {/* Grille de forfaits - Espace RÉDUIT entre les cartes */}
-        <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
           
           {/* FORFAIT 1 - Taille RÉDUITE */}
-          <div style={{ flex: 1, background: 'white', padding: '40px 25px', textAlign: 'center', borderRadius: '25px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
+          <div style={{ flex: '1 1 300px', background: 'white', padding: '40px 25px', textAlign: 'center', borderRadius: '25px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
             <h3 style={{ fontSize: '1.8em', color: '#2c3e50', margin: '0' }}>PASS 1 JOUR</h3>
             <p style={{ fontSize: '4em', fontWeight: 'bold', color: '#2c3e50', margin: '20px 0' }}>65 €</p>
           </div>
 
           {/* FORFAIT 2 (Centre) - Taille RÉDUITE */}
-          <div style={{ flex: 1.1, background: '#2c3e50', color: 'white', padding: '50px 30px', textAlign: 'center', borderRadius: '30px', transform: 'scale(1.05)', boxShadow: '0 25px 50px rgba(0,0,0,0.2)' }}>
+          <div style={{ flex: '1.1 1 320px', background: '#2c3e50', color: 'white', padding: '50px 30px', textAlign: 'center', borderRadius: '30px', transform: 'scale(1.05)', boxShadow: '0 25px 50px rgba(0,0,0,0.2)' }}>
             <h3 style={{ fontSize: '2.2em', color: '#f1c40f', margin: '0' }}>PASS 6 JOURS</h3>
             <p style={{ fontSize: '5em', fontWeight: 'bold', margin: '30px 0' }}>330 €</p>
           </div>
 
           {/* FORFAIT 3 - Taille RÉDUITE */}
-          <div style={{ flex: 1, background: 'white', padding: '40px 25px', textAlign: 'center', borderRadius: '25px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
+          <div style={{ flex: '1 1 300px', background: 'white', padding: '40px 25px', textAlign: 'center', borderRadius: '25px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
             <h3 style={{ fontSize: '1.8em', color: '#2c3e50', margin: '0' }}>PASS SAISON</h3>
             <p style={{ fontSize: '4em', fontWeight: 'bold', color: '#2c3e50', margin: '20px 0' }}>950 €</p>
           </div>
 
         </div>
       </main>
+
+      {/* --- NOUVEAU : Footer avec les réseaux sociaux --- */}
+      <footer style={{ background: '#2c3e50', color: 'white', padding: '40px 20px', textAlign: 'center', marginTop: 'auto' }}>
+        <h3 style={{ fontSize: '1.5em', marginBottom: '20px', fontWeight: 'normal' }}>SUIVEZ-NOUS SUR LES RÉSEAUX</h3>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '30px' }}>
+          
+          <a href="https://www.facebook.com/lesarcs/" target="_blank" rel="noopener noreferrer" style={{ transition: 'transform 0.2s' }} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}>
+            <img src="/facebook.png" alt="Facebook Les Arcs" style={{ width: '45px', height: '45px', objectFit: 'contain' }} />
+          </a>
+
+          <a href="https://www.instagram.com/lesarcs/" target="_blank" rel="noopener noreferrer" style={{ transition: 'transform 0.2s' }} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}>
+            <img src="/insta.png" alt="Instagram Les Arcs" style={{ width: '45px', height: '45px', objectFit: 'contain' }} />
+          </a>
+
+        </div>
+        <p style={{ marginTop: '20px', fontSize: '0.9em', color: '#bdc3c7' }}>© 2024 Les Arcs 1800. Tous droits réservés.</p>
+      </footer>
 
     </div>
   );
