@@ -58,19 +58,19 @@ const LandingPage = () => {
           <div className="forfait-card">
             <h3 className="forfait-title">PASS 1 JOUR</h3>
             <p className="forfait-price">65 €</p>
-            <Link to="/checkout" state={{ forfait: "PASS 1 JOUR", prix: "65" }} className="forfait-btn">SOUSCRIRE</Link>
+            <Link to="/checkout" state={{ forfait: "PASS 1 JOUR", prix: "65", dureeJours: 1 }} className="forfait-btn">SOUSCRIRE</Link>
           </div>
 
           <div className="forfait-card-featured">
             <h3 className="forfait-title-featured">PASS 6 JOURS</h3>
             <p className="forfait-price-featured">330 €</p>
-            <Link to="/checkout" state={{ forfait: "PASS 6 JOURS", prix: "330" }} className="forfait-btn-featured">SOUSCRIRE</Link>
+            <Link to="/checkout" state={{ forfait: "PASS 6 JOURS", prix: "330", dureeJours: 6 }} className="forfait-btn-featured">SOUSCRIRE</Link>
           </div>
 
           <div className="forfait-card">
             <h3 className="forfait-title">PASS SAISON</h3>
             <p className="forfait-price">950 €</p>
-            <Link to="/checkout" state={{ forfait: "PASS SAISON", prix: "950" }} className="forfait-btn">SOUSCRIRE</Link>
+            <Link to="/checkout" state={{ forfait: "PASS SAISON", prix: "950", dureeJours: 180 }} className="forfait-btn">SOUSCRIRE</Link>
           </div>
         </div>
       </main>
