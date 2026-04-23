@@ -55,6 +55,9 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
         });
     } catch (err) {
         return res.status(500).json({ error: "Erreur serveur." });
+    }
+});
+
 // --- ROUTES AUTHENTIFICATION ---
 app.post('/api/auth/login', async (req: Request, res: Response) => {
     const { username, password } = req.body;
@@ -199,19 +202,6 @@ app.delete('/api/users/:id', authenticateToken, async (req: Request, res: Respon
     }
 });
 
-// Synchronise les modèles avec Supabase, puis démarre le serveur
-// alter: true → met à jour les tables existantes sans les supprimer
-sequelize
-  .sync({ alter: true })
-  .then(() => {
-    console.log("✅ Base de données synchronisée (tables créées/mises à jour)");
-    app.listen(PORT, () => console.log(`🚀 SERVEUR: http://localhost:${PORT}`));
-  })
-  .catch((err) => {
-    console.error("❌ Erreur de synchronisation Sequelize :", err);
-    process.exit(1);
-  });
-=======
 // 2. CRÉER
 app.post('/api/users', authenticateToken, async (req: Request, res: Response) => {
     const { username, email, password } = req.body;
@@ -261,10 +251,15 @@ app.put('/api/users/:id', authenticateToken, async (req: Request, res: Response)
     }
 });
 
-// On utilise alter: true pour mettre à jour la structure sans tout supprimer
-User.sync({ alter: true }).then(() => {
-    console.log("✅ Base de données PostgreSQL synchronisée");
+// Synchronise les modèles avec Supabase, puis démarre le serveur
+// alter: true → met à jour les tables existantes sans les supprimer
+sequelize
+  .sync({ alter: true })
+  .then(() => {
+    console.log("✅ Base de données synchronisée (tables créées/mises à jour)");
     app.listen(PORT, () => console.log(`🚀 SERVEUR: http://localhost:${PORT}`));
-}).catch(err => {
-    console.error("❌ Erreur Sync:", err);
-});
+  })
+  .catch((err) => {
+    console.error("❌ Erreur de synchronisation Sequelize :", err);
+    process.exit(1);
+  });
