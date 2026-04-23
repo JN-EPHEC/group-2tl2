@@ -5,6 +5,7 @@ import "./Checkout.css";
 interface CheckoutState {
   forfait: string;
   prix: string;
+  dureeJours: number;
 }
 
 const API_URL = "http://localhost:3000/api";
@@ -17,7 +18,7 @@ export default function Checkout() {
     return <Navigate to="/" replace />;
   }
 
-  const { forfait, prix } = state;
+  const { forfait, prix, dureeJours } = state;
 
   // ── Mode d'authentification ──────────────────────────
   const [authMode, setAuthMode] = useState<"register" | "login">("register");
@@ -26,7 +27,7 @@ export default function Checkout() {
   const [loginEmail, setLoginEmail]   = useState("");
   const [loginPass, setLoginPass]     = useState("");
   const [loginError, setLoginError]   = useState("");
-  const [loggedInUser, setLoggedInUser] = useState<{ nom: string; prenom: string; email: string } | null>(null);
+  const [loggedInUser, setLoggedInUser] = useState<{ id: number; nom: string; prenom: string; email: string } | null>(null);
 
   // Création de compte
   const [nom, setNom]                       = useState("");
@@ -36,6 +37,7 @@ export default function Checkout() {
   const [password, setPassword]             = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError]   = useState("");
+  const [registerError, setRegisterError]   = useState("");
 
   // Paiement
   const [cardNumber, setCardNumber] = useState("");
@@ -69,12 +71,13 @@ export default function Checkout() {
       const res  = await fetch(`${API_URL}/auth/login`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ username: loginEmail, password: loginPass }),
+        body:    JSON.stringify({ email: loginEmail, password: loginPass }),
       });
       const data = await res.json();
       if (res.ok) {
         localStorage.setItem("accessToken", data.accessToken);
         setLoggedInUser({
+          id:     data.user?.id     ?? 0,
           nom:    data.user?.nom    ?? "",
           prenom: data.user?.prenom ?? "",
           email:  loginEmail,
@@ -87,24 +90,68 @@ export default function Checkout() {
     }
   };
 
+  // ── Création d'abonnement ────────────────────────────
+  const createAbonnement = async (utilisateurId: number) => {
+    await fetch(`${API_URL}/abonnements`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({
+        utilisateurId,
+        forfaitNom:  forfait,
+        prix:        parseFloat(prix),
+        dureeJours,
+      }),
+    });
+  };
+
   // ── Submit global (paiement) ─────────────────────────
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (authMode === "login" && !loggedInUser) {
-      setLoginError("Veuillez vous connecter avant de continuer.");
+    // — Mode connexion : l'utilisateur doit être connecté
+    if (authMode === "login") {
+      if (!loggedInUser) {
+        setLoginError("Veuillez vous connecter avant de continuer.");
+        return;
+      }
+      await createAbonnement(loggedInUser.id);
+      setConfirmed(true);
       return;
     }
 
-    if (authMode === "register") {
-      if (password !== confirmPassword) {
-        setPasswordError("Les mots de passe ne correspondent pas.");
-        return;
-      }
-      setPasswordError("");
+    // — Mode inscription : validation + appel API
+    if (password !== confirmPassword) {
+      setPasswordError("Les mots de passe ne correspondent pas.");
+      return;
     }
+    setPasswordError("");
+    setRegisterError("");
 
-    setConfirmed(true);
+    try {
+      const res = await fetch(`${API_URL}/users`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          nom,
+          prenom,
+          email,
+          motDePasse: password,
+          telephone: telephone || null,
+          role: "user",
+        }),
+      });
+
+      if (res.ok) {
+        const newUser = await res.json();
+        await createAbonnement(newUser.id);
+        setConfirmed(true);
+      } else {
+        const data = await res.json();
+        setRegisterError(data.error ?? "Erreur lors de la création du compte.");
+      }
+    } catch {
+      setRegisterError("Impossible de joindre le serveur. Réessayez.");
+    }
   };
 
   // Nom affiché dans la confirmation
@@ -326,7 +373,8 @@ export default function Checkout() {
                       />
                     </div>
                   </div>
-                  {passwordError && <p className="checkout-password-error">{passwordError}</p>}
+                  {passwordError  && <p className="checkout-password-error">{passwordError}</p>}
+                  {registerError  && <p className="checkout-password-error">{registerError}</p>}
                 </div>
               </div>
 
