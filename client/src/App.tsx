@@ -1,6 +1,6 @@
+import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
-import HomeApp from "./Home"; 
+import HomeApp from "./Home"; // Assure-toi que ce fichier existe
 
 const LandingPage = () => {
   const [weather, setWeather] = useState<{ temperature: number; windspeed: number; weathercode: number } | null>(null);
@@ -8,50 +8,97 @@ const LandingPage = () => {
   useEffect(() => {
     fetch("https://api.open-meteo.com/v1/forecast?latitude=45.5733&longitude=6.8043&current_weather=true")
       .then(res => res.json())
-      .then(data => {
-        console.log("🌤️ Météo reçue de l'API :", data.current_weather);
-        setWeather(data.current_weather);
-      })
+      .then(data => setWeather(data.current_weather))
       .catch(err => console.error("Erreur API Météo:", err));
   }, []);
 
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f0f4f8', minHeight: '100vh' }}>
-      <nav style={{ background: '#2c3e50', padding: '20px 60px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white', position: 'sticky', top: 0, zIndex: 1000 }}>
-        <div style={{ display: 'flex', gap: '50px', alignItems: 'center' }}>
-          <img src="/logoarcs.png" alt="Logo" style={{ width: '60px', background: 'white', padding: '5px', borderRadius: '10px' }} />
+    <div style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f0f4f7', minHeight: '100vh' }}>
+      
+      {/* Barre de navigation */}
+      <nav style={{ background: '#2c3e50', padding: '15px 50px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
+        <div style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
+          {/* N'oublie pas de mettre logoarcs.png dans le dossier public */}
+          <img src="/logoarcs.png" alt="Logo" style={{ width: '50px', background: 'white', padding: '5px', borderRadius: '10px' }} />
           <Link to="/" style={{ color: 'white', textDecoration: 'none', fontWeight: 'bold', fontSize: '1.3em' }}>ACCUEIL</Link>
-          <a href="#forfaits" style={{ color: 'white', textDecoration: 'none', fontSize: '1.2em' }}>FORFAITS</a>
+          <a href="#forfaits" style={{ color: '#ecf0f1', textDecoration: 'none', fontSize: '1.1em' }}>NOS FORFAITS</a>
         </div>
-        <Link to="/app" style={{ background: '#2ecc71', padding: '15px 35px', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '1.1em' }}>ESPACE PRO</Link>
+        <Link to="/app" style={{ background: '#2ecc71', padding: '12px 30px', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '1em' }}>
+          ESPACE PRO
+        </Link>
       </nav>
 
-      <section style={{ textAlign: 'center', padding: '100px 20px' }}>
-        <img src="/logoarcs.png" alt="Logo Large" style={{ width: '300px', marginBottom: '40px' }} />
-        <h1 style={{ fontSize: '4.5em', color: '#2c3e50', fontWeight: '900', marginBottom: '40px' }}>LES ARCS 1800</h1>
+      {/* Section Principale */}
+      <section style={{ textAlign: 'center', padding: '60px 20px' }}>
+        <img src="/logoarcs.png" alt="Logo Large" style={{ width: '250px', marginBottom: '30px' }} />
+        <h1 style={{ fontSize: '4em', color: '#2c3e50', fontWeight: '900', marginBottom: '20px', textTransform: 'uppercase' }}>LES ARCS 1800</h1>
         
-        <div style={{ display: 'inline-flex', gap: '80px', background: '#34495e', color: 'white', padding: '60px 120px', borderRadius: '40px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+        {/* --- NOUVEAU : Description de la station --- */}
+        <div style={{ maxWidth: '800px', margin: '0 auto 40px auto', fontSize: '1.2em', color: '#555', lineHeight: '1.6em', padding: '0 20px' }}>
+          <p>
+            Bienvenue aux Arcs 1800, la station au cœur du domaine Paradiski. Réputée pour son ambiance dynamique et conviviale, 
+            elle offre un accès direct à des centaines de kilomètres de pistes, une vue imprenable sur le Mont Blanc et des activités 
+            variées pour tous, été comme hiver. Un véritable paradis pour les amateurs de glisse et de montagne.
+          </p>
+        </div>
+
+        {/* --- NOUVEAU : Image paysage1.png --- */}
+        <div style={{ marginBottom: '50px' }}>
+          <img 
+            src="/paysage1.png" 
+            alt="Paysage de la station Les Arcs 1800" 
+            style={{ maxWidth: '90%', height: 'auto', borderRadius: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.15)', border: '2px solid white' }} 
+          />
+        </div>
+
+        {/* Section Météo - Taille RÉDUITE */}
+        <div style={{ display: 'inline-flex', gap: '50px', background: '#34495e', color: 'white', padding: '30px 60px', borderRadius: '25px', boxShadow: '0 15px 35px rgba(0,0,0,0.2)', border: '3px solid #2c3e50' }}>
           {weather ? (
             <>
-              <div style={{ textAlign: 'center' }}><span style={{ fontSize: '1.5em', opacity: 0.8 }}>TEMPÉRATURE</span><br/><strong style={{ fontSize: '4em' }}>{weather.temperature}°C</strong></div>
-              <div style={{ width: '3px', background: 'rgba(255,255,255,0.1)' }}></div>
-              <div style={{ textAlign: 'center' }}><span style={{ fontSize: '1.5em', opacity: 0.8 }}>VENT</span><br/><strong style={{ fontSize: '4em' }}>{weather.windspeed} km/h</strong></div>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '1.2em', color: '#bdc3c7' }}>TEMPÉRATURE</span><br/>
+                <strong style={{ fontSize: '3.5em' }}>{weather.temperature}°C</strong>
+              </div>
+              <div style={{ width: '2px', background: 'rgba(255,255,255,0.1)' }}></div>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '1.2em', color: '#bdc3c7' }}>VENT</span><br/>
+                <strong style={{ fontSize: '3em' }}>{weather.windspeed} km/h</strong>
+              </div>
             </>
-          ) : <div style={{ fontSize: '2em' }}>Actualisation en cours...</div>}
+          ) : (
+            <div style={{ fontSize: '1.5em', padding: '10px 0' }}>Chargement des conditions...</div>
+          )}
         </div>
       </section>
 
-      <main id="forfaits" style={{ padding: '100px 40px', maxWidth: '1400px', margin: '0 auto' }}>
-        <h2 style={{ textAlign: 'center', fontSize: '3.5em', marginBottom: '80px', color: '#2c3e50' }}>NOS OFFRES</h2>
-        <div style={{ display: 'flex', gap: '50px', justifyContent: 'center' }}>
-          <div style={{ flex: 1, background: 'white', padding: '80px 40px', textAlign: 'center', borderRadius: '30px', border: '2px solid #eee' }}>
-            <h3 style={{ fontSize: '2.5em' }}>PASS JOURNÉE</h3><p style={{ fontSize: '5em', fontWeight: 'bold', color: '#2c3e50' }}>65 €</p>
+      {/* Section Forfaits */}
+      <main id="forfaits" style={{ padding: '70px 40px 100px 40px', maxWidth: '1300px', margin: '0 auto' }}>
+        <h2 style={{ textAlign: 'center', fontSize: '3em', color: '#2c3e50', marginBottom: '60px' }}>NOS FORFAITS</h2>
+        
+        {/* Grille de forfaits - Espace RÉDUIT entre les cartes */}
+        <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', alignItems: 'center' }}>
+          
+          {/* FORFAIT 1 - Taille RÉDUITE */}
+          <div style={{ flex: 1, background: 'white', padding: '40px 25px', textAlign: 'center', borderRadius: '25px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
+            <h3 style={{ fontSize: '1.8em', color: '#2c3e50', margin: '0' }}>PASS 1 JOUR</h3>
+            <p style={{ fontSize: '4em', fontWeight: 'bold', color: '#2c3e50', margin: '20px 0' }}>65 €</p>
           </div>
-          <div style={{ flex: 1.2, background: '#2c3e50', color: 'white', padding: '100px 40px', textAlign: 'center', borderRadius: '30px', transform: 'scale(1.1)', boxShadow: '0 30px 60px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ fontSize: '2.8em', color: '#f1c40f' }}>PASS 6 JOURS</h3><p style={{ fontSize: '6em', fontWeight: 'bold' }}>330 €</p>
+
+          {/* FORFAIT 2 (Centre) - Taille RÉDUITE */}
+          <div style={{ flex: 1.1, background: '#2c3e50', color: 'white', padding: '50px 30px', textAlign: 'center', borderRadius: '30px', transform: 'scale(1.05)', boxShadow: '0 25px 50px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ fontSize: '2.2em', color: '#f1c40f', margin: '0' }}>PASS 6 JOURS</h3>
+            <p style={{ fontSize: '5em', fontWeight: 'bold', margin: '30px 0' }}>330 €</p>
           </div>
+
+          {/* FORFAIT 3 - Taille RÉDUITE */}
+          <div style={{ flex: 1, background: 'white', padding: '40px 25px', textAlign: 'center', borderRadius: '25px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
+            <h3 style={{ fontSize: '1.8em', color: '#2c3e50', margin: '0' }}>PASS SAISON</h3>
+            <p style={{ fontSize: '4em', fontWeight: 'bold', color: '#2c3e50', margin: '20px 0' }}>950 €</p>
+          </div>
+
         </div>
       </main>
+
     </div>
   );
 };

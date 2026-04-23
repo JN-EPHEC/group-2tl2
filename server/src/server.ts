@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { authenticateToken } from './middlewares/jwtAuth';
+import User from './models/User'; 
 
 dotenv.config();
 const app = express();
@@ -13,46 +14,103 @@ app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-const demoUser = { id: 1, username: "student", password: "password123", role: "admin" };
-let usersAnnuaire = [
-    { id: 1, username: "student", email: "user@lesarcs.com", status: "Actif" },
-    { id: 2, username: "piste", email: "pistes@lesarcs.com", status: "Actif" }
-];
-
-app.post('/api/auth/login', (req: Request, res: Response) => {
+// --- ROUTES AUTHENTIFICATION ---
+app.post('/api/auth/login', async (req: Request, res: Response) => {
     const { username, password } = req.body;
-    if (username === demoUser.username && password === demoUser.password) {
-        const accessToken = jwt.sign(
-            { id: demoUser.id, username: demoUser.username, role: demoUser.role },
-            process.env.JWT_ACCESS_SECRET || 'secret1',
-            { expiresIn: "1h" }
-        );
-        const refreshToken = jwt.sign(
-            { id: demoUser.id },
-            process.env.JWT_REFRESH_SECRET || 'secret2',
-            { expiresIn: "7d" }
-        );
-        res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: false, sameSite: "strict", maxAge: 7*24*60*60*1000 });
-        return res.status(200).json({ accessToken });
+    try {
+        const user = await User.findOne({ where: { name: username } });
+        // Utilisation de user.password directement
+        if (user && user.password === password) {
+            const accessToken = jwt.sign(
+                { id: user.id, username: user.name, role: "admin" },
+                process.env.JWT_ACCESS_SECRET || 'secret1',
+                { expiresIn: "1h" }
+            );
+            const refreshToken = jwt.sign(
+                { id: user.id },
+                process.env.JWT_REFRESH_SECRET || 'secret2',
+                { expiresIn: "7d" }
+            );
+            res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: false, sameSite: "strict", maxAge: 7*24*60*60*1000 });
+            return res.status(200).json({ accessToken });
+        }
+        return res.status(401).json({ error: "Identifiants incorrects." });
+    } catch (error) {
+        res.status(500).json({ error: "Erreur serveur." });
     }
-    return res.status(401).json({ error: "Identifiants invalides." });
 });
 
-app.post('/api/auth/logout', (req: Request, res: Response) => {
-    res.clearCookie("refreshToken");
-    return res.status(200).json({ message: "Déconnecté." });
+// --- ROUTES UTILISATEURS (CRUD) ---
+
+// 1. LIRE
+app.get('/api/users', authenticateToken, async (req: Request, res: Response) => {
+    try {
+        const users = await User.findAll(); 
+        const formattedUsers = users.map((u) => ({
+            id: u.id,
+            username: u.name, 
+            email: u.email,
+        }));
+        res.status(200).json(formattedUsers);
+    } catch (error) {
+        console.error("Erreur GET:", error);
+        res.status(500).json([]); 
+    }
 });
 
-app.get('/api/users', authenticateToken, (req: Request, res: Response) => {
-    res.status(200).json(usersAnnuaire);
+// 2. CRÉER
+app.post('/api/users', authenticateToken, async (req: Request, res: Response) => {
+    const { username, email, password } = req.body;
+    
+    // DEBUG LOGS : Regarde ton terminal quand tu crées un utilisateur !
+    console.log("Données reçues pour création :", { username, email, password });
+
+    if (!username || !email || !password) {
+        return res.status(400).json({ error: "Champs requis (username, email, password)." });
+    }
+
+    try {
+        const newUser = await User.create({ 
+            name: username, 
+            email: email,
+            password: password // Utilise la variable password issue de req.body
+        }); 
+        res.status(201).json(newUser);
+    } catch (error) {
+        console.error("Erreur POST:", error);
+        res.status(500).json({ error: "Erreur base de données" });
+    }
 });
 
-app.post('/api/users', authenticateToken, (req: Request, res: Response) => {
-    const { username, email } = req.body;
-    if (!username || !email) return res.status(400).json({ error: "Champs requis." });
-    const newUser = { id: Date.now(), username, email, status: "Nouveau" };
-    usersAnnuaire.push(newUser);
-    res.status(201).json(newUser);
+// 3. SUPPRIMER
+app.delete('/api/users/:id', authenticateToken, async (req: Request, res: Response) => {
+    try {
+        await User.destroy({ where: { id: req.params.id } });
+        res.status(200).json({ message: "Supprimé." });
+    } catch (error) {
+        res.status(500).json({ error: "Erreur." });
+    }
 });
 
-app.listen(PORT, () => console.log(`🚀 SERVEUR: http://localhost:${PORT}`));
+// 4. MODIFIER LE MDP
+app.put('/api/users/:id', authenticateToken, async (req: Request, res: Response) => {
+    const { newPassword } = req.body;
+    try {
+        const user = await User.findByPk(req.params.id);
+        if (user) {
+            await user.update({ password: newPassword });
+            return res.status(200).json({ message: "Mis à jour !" });
+        }
+        res.status(404).json({ error: "Non trouvé" });
+    } catch (error) {
+        res.status(500).json({ error: "Erreur." });
+    }
+});
+
+// On utilise alter: true pour mettre à jour la structure sans tout supprimer
+User.sync({ alter: true }).then(() => {
+    console.log("✅ Base de données PostgreSQL synchronisée");
+    app.listen(PORT, () => console.log(`🚀 SERVEUR: http://localhost:${PORT}`));
+}).catch(err => {
+    console.error("❌ Erreur Sync:", err);
+});
