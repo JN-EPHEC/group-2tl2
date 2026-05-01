@@ -1,168 +1,29 @@
-import express, { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import express from 'express';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { authenticateToken } from './middlewares/jwtAuth';
-import { sequelize, User, Forfait, Abonnement } from './models/index';
 
-const SALT_ROUNDS = 10;
+import { sequelize } from './models/index';
+import authRoutes       from './routes/authRoutes';
+import userRoutes       from './routes/userRoutes';
+import abonnementRoutes from './routes/abonnementRoutes';
 
 dotenv.config();
 
-const app = express();
+const app  = express();
 const PORT = 3000;
 
+// ── Middlewares globaux ─────────────────────────────────────
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-// ── AUTH ───────────────────────────────────────────────────
+// ── Routes ─────────────────────────────────────────────────
+app.use('/api/auth',        authRoutes);
+app.use('/api/users',       userRoutes);
+app.use('/api/abonnements', abonnementRoutes);
 
-app.post('/api/auth/login', async (req: Request, res: Response) => {
-    const { email, password } = req.body;
-    if (!email || !password)
-        return res.status(400).json({ error: "Email et mot de passe requis." });
-    try {
-        const user = await User.findOne({ where: { email } });
-        const motDePasseValide = user && await bcrypt.compare(password, user.motDePasse);
-        if (!motDePasseValide)
-            return res.status(401).json({ error: "Identifiants invalides." });
-
-        const accessToken = jwt.sign(
-            { id: user.id, email: user.email, role: user.role ?? "user" },
-            process.env.JWT_ACCESS_SECRET || 'secret1',
-            { expiresIn: "1h" }
-        );
-        const refreshToken = jwt.sign(
-            { id: user.id },
-            process.env.JWT_REFRESH_SECRET || 'secret2',
-            { expiresIn: "7d" }
-        );
-        res.cookie("refreshToken", refreshToken, {
-            httpOnly: true, secure: false, sameSite: "strict",
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
-        return res.status(200).json({
-            accessToken,
-            user: { id: user.id, nom: user.nom, prenom: user.prenom, email: user.email, role: user.role, isAdmin: user.isAdmin },
-        });
-    } catch {
-        return res.status(500).json({ error: "Erreur serveur." });
-    }
-});
-
-app.post('/api/auth/logout', (req: Request, res: Response) => {
-    res.clearCookie("refreshToken");
-    return res.status(200).json({ message: "Déconnecté." });
-});
-
-// ── UTILISATEURS ───────────────────────────────────────────
-
-// GET — liste tous les utilisateurs (admin)
-app.get('/api/users', authenticateToken, async (req: Request, res: Response) => {
-    try {
-        const users = await User.findAll({
-            attributes: ['id', 'nom', 'prenom', 'email', 'role', 'actif', 'dateInscription'],
-        });
-        res.status(200).json(users);
-    } catch {
-        res.status(500).json({ error: "Erreur lors de la récupération des utilisateurs." });
-    }
-});
-
-// POST — inscription (pas de token requis, l'utilisateur n'en a pas encore)
-app.post('/api/users', async (req: Request, res: Response) => {
-    const { nom, prenom, email, motDePasse, telephone, role } = req.body;
-    if (!nom || !prenom || !email || !motDePasse)
-        return res.status(400).json({ error: "Champs requis : nom, prenom, email, motDePasse." });
-    try {
-        const hash = await bcrypt.hash(motDePasse, SALT_ROUNDS);
-        const newUser = await User.create({ nom, prenom, email, motDePasse: hash, telephone: telephone ?? null, role: role ?? "user" });
-        res.status(201).json(newUser);
-    } catch (err: any) {
-        if (err.name === 'SequelizeUniqueConstraintError')
-            return res.status(409).json({ error: "Cet email est déjà utilisé." });
-        res.status(500).json({ error: "Erreur lors de la création." });
-    }
-});
-
-// PATCH — modifier un utilisateur (rôle, actif, mot de passe…)
-app.patch('/api/users/:id', authenticateToken, async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const data = { ...req.body };
-    try {
-        // Si le mot de passe est modifié, on le hash avant de sauvegarder
-        if (data.motDePasse) {
-            data.motDePasse = await bcrypt.hash(data.motDePasse, SALT_ROUNDS);
-        }
-        await User.update(data, { where: { id } });
-        res.status(200).json({ message: "Mis à jour." });
-    } catch {
-        res.status(500).json({ error: "Erreur lors de la mise à jour." });
-    }
-});
-
-// DELETE — supprimer un utilisateur
-app.delete('/api/users/:id', authenticateToken, async (req: Request, res: Response) => {
-    const { id } = req.params;
-    try {
-        await User.destroy({ where: { id } });
-        res.status(204).send();
-    } catch {
-        res.status(500).json({ error: "Erreur lors de la suppression." });
-    }
-});
-
-// GET — abonnements d'un utilisateur
-app.get('/api/users/:id/abonnements', authenticateToken, async (req: Request, res: Response) => {
-    const { id } = req.params;
-    try {
-        const abonnements = await Abonnement.findAll({
-            where: { utilisateurId: id },
-            include: [{ model: Forfait, as: 'forfait', attributes: ['nom', 'prix', 'dureeJours'] }],
-        });
-        res.status(200).json(abonnements);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erreur lors de la récupération des abonnements." });
-    }
-});
-
-// ── ABONNEMENTS ────────────────────────────────────────────
-
-// POST — créer un abonnement après checkout
-app.post('/api/abonnements', async (req: Request, res: Response) => {
-    const { utilisateurId, forfaitNom, prix, dureeJours } = req.body;
-    if (!utilisateurId || !forfaitNom || !prix || !dureeJours)
-        return res.status(400).json({ error: "Champs requis manquants." });
-    try {
-        const [forfait] = await Forfait.findOrCreate({
-            where: { nom: forfaitNom },
-            defaults: { nom: forfaitNom, prix, dureeJours, actif: true },
-        });
-        const dateDebut = new Date();
-        const dateFin   = new Date();
-        dateFin.setDate(dateFin.getDate() + dureeJours);
-
-        const abonnement = await Abonnement.create({
-            utilisateurId,
-            forfaitId: forfait.id,
-            dateDebut,
-            dateFin,
-            statut: "actif",
-            renouvellementAuto: false,
-        });
-        res.status(201).json(abonnement);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Erreur lors de la création de l'abonnement." });
-    }
-});
-
-// ── DÉMARRAGE ──────────────────────────────────────────────
-
+// ── Démarrage ──────────────────────────────────────────────
 sequelize
     .sync({ alter: true })
     .then(() => {
