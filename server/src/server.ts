@@ -1,10 +1,13 @@
 import express, { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { authenticateToken } from './middlewares/jwtAuth';
 import { sequelize, User, Forfait, Abonnement } from './models/index';
+
+const SALT_ROUNDS = 10;
 
 dotenv.config();
 
@@ -23,7 +26,8 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
         return res.status(400).json({ error: "Email et mot de passe requis." });
     try {
         const user = await User.findOne({ where: { email } });
-        if (!user || user.motDePasse !== password)
+        const motDePasseValide = user && await bcrypt.compare(password, user.motDePasse);
+        if (!motDePasseValide)
             return res.status(401).json({ error: "Identifiants invalides." });
 
         const accessToken = jwt.sign(
@@ -74,7 +78,8 @@ app.post('/api/users', async (req: Request, res: Response) => {
     if (!nom || !prenom || !email || !motDePasse)
         return res.status(400).json({ error: "Champs requis : nom, prenom, email, motDePasse." });
     try {
-        const newUser = await User.create({ nom, prenom, email, motDePasse, telephone: telephone ?? null, role: role ?? "user" });
+        const hash = await bcrypt.hash(motDePasse, SALT_ROUNDS);
+        const newUser = await User.create({ nom, prenom, email, motDePasse: hash, telephone: telephone ?? null, role: role ?? "user" });
         res.status(201).json(newUser);
     } catch (err: any) {
         if (err.name === 'SequelizeUniqueConstraintError')
@@ -86,8 +91,13 @@ app.post('/api/users', async (req: Request, res: Response) => {
 // PATCH — modifier un utilisateur (rôle, actif, mot de passe…)
 app.patch('/api/users/:id', authenticateToken, async (req: Request, res: Response) => {
     const { id } = req.params;
+    const data = { ...req.body };
     try {
-        await User.update(req.body, { where: { id } });
+        // Si le mot de passe est modifié, on le hash avant de sauvegarder
+        if (data.motDePasse) {
+            data.motDePasse = await bcrypt.hash(data.motDePasse, SALT_ROUNDS);
+        }
+        await User.update(data, { where: { id } });
         res.status(200).json({ message: "Mis à jour." });
     } catch {
         res.status(500).json({ error: "Erreur lors de la mise à jour." });
