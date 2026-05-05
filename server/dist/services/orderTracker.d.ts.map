@@ -1,1 +1,0 @@
-{"version":3,"file":"orderTracker.d.ts","sourceRoot":"","sources":["../../src/services/orderTracker.ts"],"names":[],"mappings":"AACA,UAAU,cAAc;IACtB,MAAM,CAAC,MAAM,EAAE,MAAM,GAAG,IAAI,CAAC;CAC9B;AAsBD,qBAAa,YAAY;IAEvB,OAAO,CAAC,SAAS,CAAwB;IACzC,OAAO,CAAC,MAAM,CAA4B;IAGnC,MAAM,CAAC,QAAQ,EAAE,cAAc,GAAG,IAAI;IAM7C,OAAO,CAAC,eAAe;IAOhB,SAAS,CAAC,SAAS,EAAE,MAAM,GAAG,IAAI;CAK1C"}

@@ -1,4 +1,6 @@
 import { validatePassword } from "./password";
+import { describe, it, expect, test } from '@jest/globals';
+
 
 describe("Password Validator - Final 100%", () => {
   it("Tests de base", () => {

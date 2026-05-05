@@ -4,9 +4,10 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { authenticateToken } from './middlewares/jwtAuth';
-import User from './models/User'; 
+import { sequelize, User, Forfait, Abonnement } from './models/index';
 
 dotenv.config();
+
 const app = express();
 const PORT = 3000;
 
@@ -14,103 +15,151 @@ app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-// --- ROUTES AUTHENTIFICATION ---
+// ── AUTH ───────────────────────────────────────────────────
+
 app.post('/api/auth/login', async (req: Request, res: Response) => {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
+    if (!email || !password)
+        return res.status(400).json({ error: "Email et mot de passe requis." });
     try {
-        const user = await User.findOne({ where: { name: username } });
-        // Utilisation de user.password directement
-        if (user && user.password === password) {
-            const accessToken = jwt.sign(
-                { id: user.id, username: user.name, role: "admin" },
-                process.env.JWT_ACCESS_SECRET || 'secret1',
-                { expiresIn: "1h" }
-            );
-            const refreshToken = jwt.sign(
-                { id: user.id },
-                process.env.JWT_REFRESH_SECRET || 'secret2',
-                { expiresIn: "7d" }
-            );
-            res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: false, sameSite: "strict", maxAge: 7*24*60*60*1000 });
-            return res.status(200).json({ accessToken });
-        }
-        return res.status(401).json({ error: "Identifiants incorrects." });
-    } catch (error) {
-        res.status(500).json({ error: "Erreur serveur." });
+        const user = await User.findOne({ where: { email } });
+        if (!user || user.motDePasse !== password)
+            return res.status(401).json({ error: "Identifiants invalides." });
+
+        const accessToken = jwt.sign(
+            { id: user.id, email: user.email, role: user.role ?? "user" },
+            process.env.JWT_ACCESS_SECRET || 'secret1',
+            { expiresIn: "1h" }
+        );
+        const refreshToken = jwt.sign(
+            { id: user.id },
+            process.env.JWT_REFRESH_SECRET || 'secret2',
+            { expiresIn: "7d" }
+        );
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true, secure: false, sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+        return res.status(200).json({
+            accessToken,
+            user: { id: user.id, nom: user.nom, prenom: user.prenom, email: user.email, role: user.role, isAdmin: user.isAdmin },
+        });
+    } catch {
+        return res.status(500).json({ error: "Erreur serveur." });
     }
 });
 
-// --- ROUTES UTILISATEURS (CRUD) ---
+app.post('/api/auth/logout', (req: Request, res: Response) => {
+    res.clearCookie("refreshToken");
+    return res.status(200).json({ message: "Déconnecté." });
+});
 
-// 1. LIRE
+// ── UTILISATEURS ───────────────────────────────────────────
+
+// GET — liste tous les utilisateurs (admin)
 app.get('/api/users', authenticateToken, async (req: Request, res: Response) => {
     try {
-        const users = await User.findAll(); 
-        const formattedUsers = users.map((u) => ({
-            id: u.id,
-            username: u.name, 
-            email: u.email,
-        }));
-        res.status(200).json(formattedUsers);
-    } catch (error) {
-        console.error("Erreur GET:", error);
-        res.status(500).json([]); 
+        const users = await User.findAll({
+            attributes: ['id', 'nom', 'prenom', 'email', 'role', 'actif', 'dateInscription'],
+        });
+        res.status(200).json(users);
+    } catch {
+        res.status(500).json({ error: "Erreur lors de la récupération des utilisateurs." });
     }
 });
 
-// 2. CRÉER
-app.post('/api/users', authenticateToken, async (req: Request, res: Response) => {
-    const { username, email, password } = req.body;
-    
-    // DEBUG LOGS : Regarde ton terminal quand tu crées un utilisateur !
-    console.log("Données reçues pour création :", { username, email, password });
-
-    if (!username || !email || !password) {
-        return res.status(400).json({ error: "Champs requis (username, email, password)." });
-    }
-
+// POST — inscription (pas de token requis, l'utilisateur n'en a pas encore)
+app.post('/api/users', async (req: Request, res: Response) => {
+    const { nom, prenom, email, motDePasse, telephone, role } = req.body;
+    if (!nom || !prenom || !email || !motDePasse)
+        return res.status(400).json({ error: "Champs requis : nom, prenom, email, motDePasse." });
     try {
-        const newUser = await User.create({ 
-            name: username, 
-            email: email,
-            password: password // Utilise la variable password issue de req.body
-        }); 
+        const newUser = await User.create({ nom, prenom, email, motDePasse, telephone: telephone ?? null, role: role ?? "user" });
         res.status(201).json(newUser);
-    } catch (error) {
-        console.error("Erreur POST:", error);
-        res.status(500).json({ error: "Erreur base de données" });
+    } catch (err: any) {
+        if (err.name === 'SequelizeUniqueConstraintError')
+            return res.status(409).json({ error: "Cet email est déjà utilisé." });
+        res.status(500).json({ error: "Erreur lors de la création." });
     }
 });
 
-// 3. SUPPRIMER
+// PATCH — modifier un utilisateur (rôle, actif, mot de passe…)
+app.patch('/api/users/:id', authenticateToken, async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+        await User.update(req.body, { where: { id } });
+        res.status(200).json({ message: "Mis à jour." });
+    } catch {
+        res.status(500).json({ error: "Erreur lors de la mise à jour." });
+    }
+});
+
+// DELETE — supprimer un utilisateur
 app.delete('/api/users/:id', authenticateToken, async (req: Request, res: Response) => {
+    const { id } = req.params;
     try {
-        await User.destroy({ where: { id: req.params.id } });
-        res.status(200).json({ message: "Supprimé." });
-    } catch (error) {
-        res.status(500).json({ error: "Erreur." });
+        await User.destroy({ where: { id } });
+        res.status(204).send();
+    } catch {
+        res.status(500).json({ error: "Erreur lors de la suppression." });
     }
 });
 
-// 4. MODIFIER LE MDP
-app.put('/api/users/:id', authenticateToken, async (req: Request, res: Response) => {
-    const { newPassword } = req.body;
+// GET — abonnements d'un utilisateur
+app.get('/api/users/:id/abonnements', authenticateToken, async (req: Request, res: Response) => {
+    const { id } = req.params;
     try {
-        const user = await User.findByPk(req.params.id);
-        if (user) {
-            await user.update({ password: newPassword });
-            return res.status(200).json({ message: "Mis à jour !" });
-        }
-        res.status(404).json({ error: "Non trouvé" });
-    } catch (error) {
-        res.status(500).json({ error: "Erreur." });
+        const abonnements = await Abonnement.findAll({
+            where: { utilisateurId: id },
+            include: [{ model: Forfait, as: 'forfait', attributes: ['nom', 'prix', 'dureeJours'] }],
+        });
+        res.status(200).json(abonnements);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Erreur lors de la récupération des abonnements." });
     }
 });
 
-// On utilise alter: true pour mettre à jour la structure sans tout supprimer
-User.sync({ alter: true }).then(() => {
-    console.log("✅ Base de données PostgreSQL synchronisée");
-    app.listen(PORT, () => console.log(`🚀 SERVEUR: http://localhost:${PORT}`));
-}).catch(err => {
-    console.error("❌ Erreur Sync:", err);
+// ── ABONNEMENTS ────────────────────────────────────────────
+
+// POST — créer un abonnement après checkout
+app.post('/api/abonnements', async (req: Request, res: Response) => {
+    const { utilisateurId, forfaitNom, prix, dureeJours } = req.body;
+    if (!utilisateurId || !forfaitNom || !prix || !dureeJours)
+        return res.status(400).json({ error: "Champs requis manquants." });
+    try {
+        const [forfait] = await Forfait.findOrCreate({
+            where: { nom: forfaitNom },
+            defaults: { nom: forfaitNom, prix, dureeJours, actif: true },
+        });
+        const dateDebut = new Date();
+        const dateFin   = new Date();
+        dateFin.setDate(dateFin.getDate() + dureeJours);
+
+        const abonnement = await Abonnement.create({
+            utilisateurId,
+            forfaitId: forfait.id,
+            dateDebut,
+            dateFin,
+            statut: "actif",
+            renouvellementAuto: false,
+        });
+        res.status(201).json(abonnement);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Erreur lors de la création de l'abonnement." });
+    }
 });
+
+// ── DÉMARRAGE ──────────────────────────────────────────────
+
+sequelize
+    .sync({ alter: true })
+    .then(() => {
+        console.log("✅ Base de données synchronisée");
+        app.listen(PORT, () => console.log(`🚀 SERVEUR: http://localhost:${PORT}`));
+    })
+    .catch((err) => {
+        console.error("❌ Erreur de synchronisation Sequelize :", err);
+        process.exit(1);
+    });
