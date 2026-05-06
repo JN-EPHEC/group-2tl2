@@ -71,7 +71,7 @@ export default function Panel() {
           nom:     data.user?.nom      ?? payload?.nom     ?? "",
           prenom:  data.user?.prenom   ?? payload?.prenom  ?? "",
           email:   data.user?.email    ?? payload?.email   ?? loginEmail,
-          isAdmin: data.user?.isAdmin  ?? payload?.isAdmin ?? payload?.role === "admin" ?? false,
+          isAdmin: data.user?.isAdmin  ?? payload?.isAdmin ?? (payload?.role === "admin"),
           role:    data.user?.role     ?? payload?.role    ?? "user",
         };
         setCurrentUser(user);

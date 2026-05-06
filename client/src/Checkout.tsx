@@ -29,7 +29,7 @@ export default function Checkout() {
   const [nom, setNom] = useState("");
   const [prenom, setPrenom] = useState("");
   const [email, setEmail] = useState("");
-  const [telephone, setTelephone] = useState("");
+  const [telephone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -141,6 +141,7 @@ export default function Checkout() {
                     <div className="checkout-field"><label>Email</label><input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} disabled={authMode !== "login"} /></div>
                     <div className="checkout-field"><label>Pass</label><input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} disabled={authMode !== "login"} /></div>
                     <button type="button" className="checkout-auth-btn" onClick={handleLogin} disabled={authMode !== "login"}>SE CONNECTER</button>
+                    {loginError && <p style={{ color: "red", fontSize: "0.85rem", margin: "4px 0 0" }}>{loginError}</p>}
                   </div>
                 )}
               </div>
@@ -155,6 +156,8 @@ export default function Checkout() {
                   <div className="checkout-field"><label>Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} required={authMode === "register"} disabled={authMode !== "register"} /></div>
                   <div className="checkout-field"><label>Pass</label><input type="password" value={password} onChange={e => setPassword(e.target.value)} minLength={8} required={authMode === "register"} disabled={authMode !== "register"} /></div>
                   <div className="checkout-field"><label>Confirmer</label><input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required={authMode === "register"} disabled={authMode !== "register"} /></div>
+                  {passwordError && <p style={{ color: "red", fontSize: "0.85rem", margin: "4px 0 0" }}>{passwordError}</p>}
+                  {registerError && <p style={{ color: "red", fontSize: "0.85rem", margin: "4px 0 0" }}>{registerError}</p>}
                 </div>
               </div>
             </div>
