@@ -31,6 +31,8 @@ jobs:
           context: ./client
           push: true
           tags: louiskle/skidev2-client:latest
+          build-args: |
+            VITE_API_URL=${{ secrets.VITE_API_URL }}
 
       - name: SSH — update les containers
         uses: appleboy/ssh-action@v1
