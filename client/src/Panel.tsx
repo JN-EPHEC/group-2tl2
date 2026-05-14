@@ -39,7 +39,7 @@ function decodeToken(token: string): Partial<UserInfo> | null {
   }
 }
 
-const API_URL = "http://localhost:3000/api";
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
 // ══════════════════════════════════════════════════════════
 export default function Panel() {
@@ -71,7 +71,7 @@ export default function Panel() {
           nom:     data.user?.nom      ?? payload?.nom     ?? "",
           prenom:  data.user?.prenom   ?? payload?.prenom  ?? "",
           email:   data.user?.email    ?? payload?.email   ?? loginEmail,
-          isAdmin: data.user?.isAdmin  ?? payload?.isAdmin ?? payload?.role === "admin" ?? false,
+          isAdmin: data.user?.isAdmin  ?? payload?.isAdmin ?? (payload?.role === "admin"),
           role:    data.user?.role     ?? payload?.role    ?? "user",
         };
         setCurrentUser(user);

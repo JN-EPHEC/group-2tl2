@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, Navigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import "./Checkout.css";
 
 interface CheckoutState {
@@ -8,175 +8,104 @@ interface CheckoutState {
   dureeJours: number;
 }
 
-const API_URL = "http://localhost:3000/api";
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
 export default function Checkout() {
   const location = useLocation();
   const state = location.state as CheckoutState | null;
 
-  if (!state?.forfait || !state?.prix) {
-    return <Navigate to="/" replace />;
-  }
+  // MODIFICATION : Valeurs par défaut si le state est vide (clic direct)
+  const forfait = state?.forfait || "PASS 6 JOURS";
+  const prix = state?.prix || "330";
+  const dureeJours = state?.dureeJours || 6;
 
-  const { forfait, prix, dureeJours } = state;
-
-  // ── Mode d'authentification ──────────────────────────
+  // ── États ──
   const [authMode, setAuthMode] = useState<"register" | "login">("register");
-
-  // Connexion compte existant
-  const [loginEmail, setLoginEmail]   = useState("");
-  const [loginPass, setLoginPass]     = useState("");
-  const [loginError, setLoginError]   = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPass, setLoginPass] = useState("");
+  const [loginError, setLoginError] = useState("");
   const [loggedInUser, setLoggedInUser] = useState<{ id: number; nom: string; prenom: string; email: string } | null>(null);
 
-  // Création de compte
-  const [nom, setNom]                       = useState("");
-  const [prenom, setPrenom]                 = useState("");
-  const [email, setEmail]                   = useState("");
-  const [telephone, setTelephone]           = useState("");
-  const [password, setPassword]             = useState("");
+  const [nom, setNom] = useState("");
+  const [prenom, setPrenom] = useState("");
+  const [email, setEmail] = useState("");
+  const [telephone] = useState("");
+  const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordError, setPasswordError]   = useState("");
-  const [registerError, setRegisterError]   = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [registerError, setRegisterError] = useState("");
 
-  // Paiement
   const [cardNumber, setCardNumber] = useState("");
-  const [cardName, setCardName]     = useState("");
+  const [cardName, setCardName] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv]       = useState("");
-
+  const [cardCvv, setCardCvv] = useState("");
   const [confirmed, setConfirmed] = useState(false);
 
-  // ── Helpers carte ────────────────────────────────────
-  const displayCard   = cardNumber.replace(/\s/g, "").replace(/(.{4})/g, "$1 ").trim() || "•••• •••• •••• ••••";
+  // ── Helpers ──
+  const displayCard = cardNumber.replace(/\s/g, "").replace(/(.{4})/g, "$1 ").trim() || "•••• •••• •••• ••••";
   const displayExpiry = cardExpiry || "MM/AA";
-  const displayName   = cardName   || "VOTRE NOM";
+  const displayName = cardName || "VOTRE NOM";
 
-  const formatCardInput = (val: string) =>
-    val.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
-
+  const formatCardInput = (val: string) => val.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
   const formatExpiry = (val: string) => {
     const clean = val.replace(/\D/g, "").slice(0, 4);
     return clean.length >= 3 ? `${clean.slice(0, 2)}/${clean.slice(2)}` : clean;
   };
 
-  // ── Connexion ────────────────────────────────────────
   const handleLogin = async () => {
     setLoginError("");
-    if (!loginEmail || !loginPass) {
-      setLoginError("Veuillez remplir tous les champs.");
-      return;
-    }
     try {
-      const res  = await fetch(`${API_URL}/auth/login`, {
-        method:  "POST",
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ email: loginEmail, password: loginPass }),
+        body: JSON.stringify({ email: loginEmail, password: loginPass }),
       });
       const data = await res.json();
       if (res.ok) {
-        localStorage.setItem("accessToken", data.accessToken);
-        setLoggedInUser({
-          id:     data.user?.id     ?? 0,
-          nom:    data.user?.nom    ?? "",
-          prenom: data.user?.prenom ?? "",
-          email:  loginEmail,
-        });
+        setLoggedInUser({ id: data.user.id, nom: data.user.nom, prenom: data.user.prenom, email: loginEmail });
       } else {
-        setLoginError(data.error || "Identifiants incorrects.");
+        setLoginError(data.error || "Erreur de connexion.");
       }
-    } catch {
-      setLoginError("Erreur de connexion au serveur.");
-    }
+    } catch { setLoginError("Serveur injoignable."); }
   };
 
-  // ── Création d'abonnement ────────────────────────────
   const createAbonnement = async (utilisateurId: number) => {
     await fetch(`${API_URL}/abonnements`, {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({
-        utilisateurId,
-        forfaitNom:  forfait,
-        prix:        parseFloat(prix),
-        dureeJours,
-      }),
+      body: JSON.stringify({ utilisateurId, forfaitNom: forfait, prix: parseFloat(prix), dureeJours }),
     });
   };
 
-  // ── Submit global (paiement) ─────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // — Mode connexion : l'utilisateur doit être connecté
     if (authMode === "login") {
-      if (!loggedInUser) {
-        setLoginError("Veuillez vous connecter avant de continuer.");
-        return;
-      }
+      if (!loggedInUser) return setLoginError("Connectez-vous d'abord.");
       await createAbonnement(loggedInUser.id);
       setConfirmed(true);
       return;
     }
-
-    // — Mode inscription : validation + appel API
-    if (password !== confirmPassword) {
-      setPasswordError("Les mots de passe ne correspondent pas.");
-      return;
-    }
-    setPasswordError("");
-    setRegisterError("");
-
+    if (password !== confirmPassword) return setPasswordError("Mots de passe différents.");
     try {
       const res = await fetch(`${API_URL}/users`, {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          nom,
-          prenom,
-          email,
-          motDePasse: password,
-          telephone: telephone || null,
-          role: "user",
-        }),
+        body: JSON.stringify({ nom, prenom, email, motDePasse: password, telephone, role: "user" }),
       });
-
       if (res.ok) {
         const newUser = await res.json();
         await createAbonnement(newUser.id);
         setConfirmed(true);
-      } else {
-        const data = await res.json();
-        setRegisterError(data.error ?? "Erreur lors de la création du compte.");
-      }
-    } catch {
-      setRegisterError("Impossible de joindre le serveur. Réessayez.");
-    }
+      } else { setRegisterError("Erreur création compte."); }
+    } catch { setRegisterError("Serveur injoignable."); }
   };
 
-  // Nom affiché dans la confirmation
-  const displayUserName = loggedInUser
-    ? `${loggedInUser.prenom} ${loggedInUser.nom}`.trim() || loggedInUser.email
-    : `${prenom} ${nom}`.trim();
-  const displayUserEmail = loggedInUser ? loggedInUser.email : email;
-
-  // ── Confirmation ─────────────────────────────────────
   if (confirmed) {
     return (
       <div className="checkout-page">
-        <header className="checkout-header">
-          <img src="/logoarcs.png" alt="Logo" className="checkout-header-logo" />
-          <h1 className="checkout-header-title">LES ARCS 1800</h1>
-        </header>
         <div className="checkout-success">
           <div className="checkout-success-icon">✓</div>
           <h2 className="checkout-success-title">COMMANDE CONFIRMÉE !</h2>
-          <p className="checkout-success-sub">
-            Bienvenue {displayUserName}, votre forfait a bien été enregistré.
-          </p>
-          <p className="checkout-success-sub">
-            Un email de confirmation a été envoyé à <strong>{displayUserEmail}</strong>
-          </p>
           <div className="checkout-success-forfait">🎿 {forfait} — {prix} €</div>
           <Link to="/" className="checkout-success-btn">← RETOUR AU SITE</Link>
         </div>
@@ -184,273 +113,70 @@ export default function Checkout() {
     );
   }
 
-  // ── Page principale ───────────────────────────────────
   return (
     <div className="checkout-page">
       <header className="checkout-header">
-        <img src="/logoarcs.png" alt="Logo" className="checkout-header-logo" />
-        <h1 className="checkout-header-title">LES ARCS 1800 — FINALISER MON FORFAIT</h1>
-        <Link to="/" className="checkout-header-back">← Retour au site</Link>
+        <img src="/logoarcs.png" alt="L" className="checkout-header-logo" />
+        <h1 className="checkout-header-title">FINALISER MON FORFAIT</h1>
+        <Link to="/" className="checkout-header-back">← Retour</Link>
       </header>
 
       <div className="checkout-content">
-        {/* ── Récapitulatif ── */}
         <aside className="checkout-summary">
           <p className="checkout-summary-label">Votre sélection</p>
           <h2 className="checkout-summary-forfait">🎿 {forfait}</h2>
           <hr className="checkout-summary-divider" />
-          <div className="checkout-summary-row"><span>Sous-total</span><span>{prix} €</span></div>
-          <div className="checkout-summary-row"><span>Frais de dossier</span><span>Offerts</span></div>
-          <div className="checkout-summary-row"><span>TVA (20%)</span><span>incluse</span></div>
-          <hr className="checkout-summary-divider" />
-          <div className="checkout-summary-total-row">
-            <span>TOTAL</span>
-            <span className="checkout-summary-total-price">{prix} €</span>
-          </div>
-          <div className="checkout-summary-badge">
-            🔒 Paiement 100% sécurisé<br />
-            ✓ Accès immédiat après confirmation<br />
-            ✓ Annulation sous 14 jours
-          </div>
+          <div className="checkout-summary-total-row"><span>TOTAL</span><span className="checkout-summary-total-price">{prix} €</span></div>
+          <div className="checkout-summary-badge">🔒 Paiement sécurisé</div>
         </aside>
 
-        {/* ── Formulaire ── */}
         <form className="checkout-form-wrapper" onSubmit={handleSubmit}>
-
-          {/* ── Section 1 — Identification ── */}
           <div className="checkout-section">
-            <h3 className="checkout-section-title">
-              <span>1</span>IDENTIFICATION
-            </h3>
-
+            <h3 className="checkout-section-title"><span>1</span>IDENTIFICATION</h3>
             <div className="checkout-auth-row">
-
-              {/* Panneau — Connexion */}
-              <div
-                className={`checkout-auth-panel ${authMode === "login" ? "auth-active" : "auth-inactive"}`}
-                onClick={() => { setAuthMode("login"); setPasswordError(""); }}
-              >
-                <h4 className="checkout-auth-panel-title">J'AI DÉJÀ UN COMPTE</h4>
-
-                {loggedInUser ? (
-                  /* ── Connecté ── */
-                  <div className="checkout-auth-logged">
-                    <div className="checkout-auth-logged-icon">✓</div>
-                    <p className="checkout-auth-logged-name">
-                      {loggedInUser.prenom} {loggedInUser.nom}
-                    </p>
-                    <p className="checkout-auth-logged-email">{loggedInUser.email}</p>
-                    <button
-                      type="button"
-                      className="checkout-auth-logout"
-                      onClick={(e) => { e.stopPropagation(); setLoggedInUser(null); setLoginEmail(""); setLoginPass(""); }}
-                    >
-                      Changer de compte
-                    </button>
-                  </div>
-                ) : (
-                  /* ── Formulaire login ── */
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <div className="checkout-field">
-                      <label>Email</label>
-                      <input
-                        type="email"
-                        placeholder="jean.dupont@email.com"
-                        value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        disabled={authMode !== "login"}
-                      />
-                    </div>
-                    <div className="checkout-field" style={{ marginTop: "14px" }}>
-                      <label>Mot de passe</label>
-                      <input
-                        type="password"
-                        placeholder="Votre mot de passe"
-                        value={loginPass}
-                        onChange={(e) => setLoginPass(e.target.value)}
-                        disabled={authMode !== "login"}
-                      />
-                    </div>
-                    {loginError && <p className="checkout-password-error">{loginError}</p>}
-                    <button
-                      type="button"
-                      className="checkout-auth-btn"
-                      onClick={handleLogin}
-                      disabled={authMode !== "login"}
-                    >
-                      SE CONNECTER
-                    </button>
+              <div className={`checkout-auth-panel ${authMode === "login" ? "auth-active" : "auth-inactive"}`} onClick={() => setAuthMode("login")}>
+                <h4 className="checkout-auth-panel-title">CONNEXION</h4>
+                {loggedInUser ? <p>Connecté : {loggedInUser.prenom}</p> : (
+                  <div onClick={e => e.stopPropagation()}>
+                    <div className="checkout-field"><label>Email</label><input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} disabled={authMode !== "login"} /></div>
+                    <div className="checkout-field"><label>Pass</label><input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} disabled={authMode !== "login"} /></div>
+                    <button type="button" className="checkout-auth-btn" onClick={handleLogin} disabled={authMode !== "login"}>SE CONNECTER</button>
+                    {loginError && <p style={{ color: "red", fontSize: "0.85rem", margin: "4px 0 0" }}>{loginError}</p>}
                   </div>
                 )}
               </div>
-
-              {/* Séparateur */}
-              <div className="checkout-auth-separator">
-                <div className="checkout-auth-separator-line" />
-                <span className="checkout-auth-separator-ou">OU</span>
-                <div className="checkout-auth-separator-line" />
-              </div>
-
-              {/* Panneau — Inscription */}
-              <div
-                className={`checkout-auth-panel ${authMode === "register" ? "auth-active" : "auth-inactive"}`}
-                onClick={() => { setAuthMode("register"); setLoginError(""); }}
-              >
-                <h4 className="checkout-auth-panel-title">CRÉER MON COMPTE</h4>
-
-                <div onClick={(e) => e.stopPropagation()}>
+              <div className="checkout-auth-separator"><span className="checkout-auth-separator-ou">OU</span></div>
+              <div className={`checkout-auth-panel ${authMode === "register" ? "auth-active" : "auth-inactive"}`} onClick={() => setAuthMode("register")}>
+                <h4 className="checkout-auth-panel-title">INSCRIPTION</h4>
+                <div onClick={e => e.stopPropagation()}>
                   <div className="checkout-row">
-                    <div className="checkout-field">
-                      <label>Prénom</label>
-                      <input
-                        type="text"
-                        placeholder="Jean"
-                        value={prenom}
-                        onChange={(e) => setPrenom(e.target.value)}
-                        required={authMode === "register"}
-                        disabled={authMode !== "register"}
-                      />
-                    </div>
-                    <div className="checkout-field">
-                      <label>Nom</label>
-                      <input
-                        type="text"
-                        placeholder="Dupont"
-                        value={nom}
-                        onChange={(e) => setNom(e.target.value)}
-                        required={authMode === "register"}
-                        disabled={authMode !== "register"}
-                      />
-                    </div>
+                    <div className="checkout-field"><label>Prénom</label><input type="text" value={prenom} onChange={e => setPrenom(e.target.value)} required={authMode === "register"} disabled={authMode !== "register"} /></div>
+                    <div className="checkout-field"><label>Nom</label><input type="text" value={nom} onChange={e => setNom(e.target.value)} required={authMode === "register"} disabled={authMode !== "register"} /></div>
                   </div>
-
-                  <div className="checkout-row">
-                    <div className="checkout-field">
-                      <label>Email</label>
-                      <input
-                        type="email"
-                        placeholder="jean.dupont@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required={authMode === "register"}
-                        disabled={authMode !== "register"}
-                      />
-                    </div>
-                    <div className="checkout-field">
-                      <label>Téléphone</label>
-                      <input
-                        type="tel"
-                        placeholder="+33 6 00 00 00 00"
-                        value={telephone}
-                        onChange={(e) => setTelephone(e.target.value)}
-                        disabled={authMode !== "register"}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="checkout-row">
-                    <div className="checkout-field">
-                      <label>Mot de passe</label>
-                      <input
-                        type="password"
-                        placeholder="Minimum 8 caractères"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required={authMode === "register"}
-                        disabled={authMode !== "register"}
-                        minLength={8}
-                      />
-                    </div>
-                    <div className="checkout-field">
-                      <label>Confirmer le mot de passe</label>
-                      <input
-                        type="password"
-                        placeholder="Répétez le mot de passe"
-                        value={confirmPassword}
-                        onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(""); }}
-                        required={authMode === "register"}
-                        disabled={authMode !== "register"}
-                      />
-                    </div>
-                  </div>
-                  {passwordError  && <p className="checkout-password-error">{passwordError}</p>}
-                  {registerError  && <p className="checkout-password-error">{registerError}</p>}
+                  <div className="checkout-field"><label>Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} required={authMode === "register"} disabled={authMode !== "register"} /></div>
+                  <div className="checkout-field"><label>Pass</label><input type="password" value={password} onChange={e => setPassword(e.target.value)} minLength={8} required={authMode === "register"} disabled={authMode !== "register"} /></div>
+                  <div className="checkout-field"><label>Confirmer</label><input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required={authMode === "register"} disabled={authMode !== "register"} /></div>
+                  {passwordError && <p style={{ color: "red", fontSize: "0.85rem", margin: "4px 0 0" }}>{passwordError}</p>}
+                  {registerError && <p style={{ color: "red", fontSize: "0.85rem", margin: "4px 0 0" }}>{registerError}</p>}
                 </div>
               </div>
-
             </div>
           </div>
 
-          {/* ── Section 2 — Paiement ── */}
           <div className="checkout-section">
-            <h3 className="checkout-section-title">
-              <span>2</span>INFORMATIONS DE PAIEMENT
-            </h3>
-
+            <h3 className="checkout-section-title"><span>2</span>PAIEMENT</h3>
             <div className="checkout-card-visual">
-              <span className="checkout-fake-badge">DEMO</span>
-              <div className="checkout-card-chip" />
-              <div className="checkout-card-number">{displayCard}</div>
-              <div className="checkout-card-bottom">
-                <span>{displayName}</span>
-                <span>{displayExpiry}</span>
-              </div>
+              <div className="checkout-card-chip" /><div className="checkout-card-number">{displayCard}</div>
+              <div className="checkout-card-bottom"><span>{displayName}</span><span>{displayExpiry}</span></div>
             </div>
-
+            <div className="checkout-field"><label>Numéro</label><input type="text" value={cardNumber} onChange={e => setCardNumber(formatCardInput(e.target.value))} maxLength={19} required /></div>
             <div className="checkout-row">
-              <div className="checkout-field">
-                <label>Numéro de carte</label>
-                <input
-                  type="text"
-                  placeholder="1234 5678 9012 3456"
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(formatCardInput(e.target.value))}
-                  maxLength={19}
-                  required
-                />
-              </div>
+              <div className="checkout-field"><label>Nom</label><input type="text" value={cardName} onChange={e => setCardName(e.target.value.toUpperCase())} required /></div>
+              <div className="checkout-field"><label>Exp</label><input type="text" value={cardExpiry} onChange={e => setCardExpiry(formatExpiry(e.target.value))} maxLength={5} required /></div>
+              <div className="checkout-field"><label>CVV</label><input type="text" value={cardCvv} onChange={e => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 3))} maxLength={3} required /></div>
             </div>
-
-            <div className="checkout-row">
-              <div className="checkout-field">
-                <label>Nom sur la carte</label>
-                <input
-                  type="text"
-                  placeholder="JEAN DUPONT"
-                  value={cardName}
-                  onChange={(e) => setCardName(e.target.value.toUpperCase())}
-                  required
-                />
-              </div>
-              <div className="checkout-field">
-                <label>Date d'expiration</label>
-                <input
-                  type="text"
-                  placeholder="MM/AA"
-                  value={cardExpiry}
-                  onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
-                  maxLength={5}
-                  required
-                />
-              </div>
-              <div className="checkout-field">
-                <label>CVV</label>
-                <input
-                  type="text"
-                  placeholder="•••"
-                  value={cardCvv}
-                  onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 3))}
-                  maxLength={3}
-                  required
-                />
-              </div>
-            </div>
-
-            <button type="submit" className="checkout-submit-btn">
-              🎿 CONFIRMER MON FORFAIT — {prix} €
-            </button>
+            <button type="submit" className="checkout-submit-btn">🎿 CONFIRMER — {prix} €</button>
           </div>
-
         </form>
       </div>
     </div>
