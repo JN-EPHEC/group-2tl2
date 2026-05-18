@@ -12,7 +12,8 @@ const app = express();
 const PORT = 3000;
 
 const allowedOrigin = process.env.CLIENT_URL ?? "http://localhost:5173";
-app.use(cors({ origin: allowedOrigin, credentials: true }));
+//app.use(cors({ origin: allowedOrigin, credentials: true }));
+app.use(cors({ origin: "http://91.134.138.162:5174", credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
