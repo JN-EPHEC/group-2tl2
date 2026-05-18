@@ -1,27 +1,7 @@
-import express from 'express';
-import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
-import cors from 'cors';
-
 import { sequelize } from './models/index';
-import authRoutes       from './routes/authRoutes';
-import userRoutes       from './routes/userRoutes';
-import abonnementRoutes from './routes/abonnementRoutes';
+import app from './app';
 
-dotenv.config();
-
-const app  = express();
 const PORT = 3000;
-
-const allowedOrigin = process.env.CLIENT_URL ?? "http://localhost:5173";
-app.use(cors({ origin: allowedOrigin, credentials: true }));
-app.use(express.json());
-app.use(cookieParser());
-
-// ── Routes ─────────────────────────────────────────────────
-app.use('/api/auth',        authRoutes);
-app.use('/api/users',       userRoutes);
-app.use('/api/abonnements', abonnementRoutes);
 
 // ── Démarrage ──────────────────────────────────────────────
 sequelize
