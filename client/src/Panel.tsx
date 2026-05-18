@@ -292,6 +292,22 @@ function AdminView({
 
   useEffect(() => { loadUsers(); }, []);
 
+  const totalUsers = users.length;
+  const activeUsers = users.filter((u) => u.actif).length;
+  const inactiveUsers = users.filter((u) => !u.actif).length;
+  const moderators = users.filter(
+    (u) => u.role === "moderateur" || u.role === "super_admin"
+  ).length;
+
+  const chartData = [
+    { label: "Utilisateurs", value: totalUsers },
+    { label: "Actifs", value: activeUsers },
+    { label: "Inactifs", value: inactiveUsers },
+    { label: "Modérateurs", value: moderators },
+  ];
+
+  const maxChartValue = Math.max(...chartData.map((item) => item.value), 1);
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddMsg("");
@@ -415,6 +431,28 @@ function AdminView({
           <div className="admin-stat-card">
             <span className="admin-stat-number">{users.filter((u) => u.role === "moderateur" || u.role === "super_admin").length}</span>
             <span className="admin-stat-label">Modérateurs</span>
+          </div>
+        </div>
+
+        {/* Graphique statistiques */}
+        <div className="admin-chart-card">
+          <h3 className="admin-chart-title">📊 Statistiques utilisateurs</h3>
+
+          <div className="admin-chart">
+            {chartData.map((item) => (
+              <div className="admin-chart-row" key={item.label}>
+                <span className="admin-chart-label">{item.label}</span>
+
+                <div className="admin-chart-bar-wrapper">
+                  <div
+                    className="admin-chart-bar"
+                    style={{ width: `${(item.value / maxChartValue) * 100}%` }}
+                  />
+                </div>
+
+                <span className="admin-chart-value">{item.value}</span>
+              </div>
+            ))}
           </div>
         </div>
 
