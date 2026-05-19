@@ -6,6 +6,7 @@ import cors from 'cors';
 import authRoutes       from './routes/authRoutes';
 import userRoutes       from './routes/userRoutes';
 import abonnementRoutes from './routes/abonnementRoutes';
+import { errorHandler } from './middlewares/errorHandler';
 
 dotenv.config();
 
@@ -19,5 +20,8 @@ app.use(cookieParser());
 app.use('/api/auth',        authRoutes);
 app.use('/api/users',       userRoutes);
 app.use('/api/abonnements', abonnementRoutes);
+
+// ── Gestion centralisée des erreurs (doit être en dernier) ──
+app.use(errorHandler);
 
 export default app;
