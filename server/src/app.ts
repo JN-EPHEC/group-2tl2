@@ -11,8 +11,7 @@ import { errorHandler } from './middlewares/errorHandler';
 dotenv.config();
 
 const app = express();
-
-const allowedOrigin = process.env.CLIENT_URL ?? 'http://localhost:5173';
+const allowedOrigin = process.env.CLIENT_URL ?? 'http://91.134.138.162:5173';
 app.use(cors({ origin: allowedOrigin, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());

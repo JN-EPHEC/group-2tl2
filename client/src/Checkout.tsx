@@ -8,8 +8,8 @@ interface CheckoutState {
   dureeJours: number;
 }
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
-
+// const API_URL = "http://localhost:3000/api";
+const API_URL = "http://91.134.138.162:3000/api";
 export default function Checkout() {
   const location = useLocation();
   const state = location.state as CheckoutState | null;
