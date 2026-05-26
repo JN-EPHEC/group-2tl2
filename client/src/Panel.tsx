@@ -36,6 +36,15 @@ interface StatsData {
   parMoisParForfait: { mois: string; forfait: string; total: number }[];
 }
 
+interface ForfaitRow {
+  id: number;
+  nom: string;
+  description: string | null;
+  prix: number;
+  dureeJours: number;
+  actif: boolean;
+}
+
 // ── Utilitaire JWT ─────────────────────────────────────────
 function decodeToken(token: string): Partial<UserInfo> | null {
   try {
@@ -280,6 +289,13 @@ function AdminView({
   const [resetPwd, setResetPwd]               = useState("");
   const [resetMsg, setResetMsg]               = useState("");
 
+  // Gestion forfaits
+  const [forfaits, setForfaits]           = useState<ForfaitRow[]>([]);
+  const [editForfait, setEditForfait]     = useState<ForfaitRow | null>(null);
+  const [showAddForfait, setShowAddForfait] = useState(false);
+  const [forfaitMsg, setForfaitMsg]       = useState("");
+  const [newForfait, setNewForfait]       = useState({ nom: "", description: "", prix: "", dureeJours: "" });
+
   const token = () => localStorage.getItem("accessToken") ?? "";
 
   const loadUsers = async () => {
@@ -297,8 +313,19 @@ function AdminView({
     }
   };
 
+  const loadForfaits = async () => {
+    try {
+      const res = await fetch(`${API_URL}/forfaits`, {
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      const data = res.ok ? await res.json() : [];
+      setForfaits(Array.isArray(data) ? data : []);
+    } catch { setForfaits([]); }
+  };
+
   useEffect(() => {
     loadUsers();
+    loadForfaits();
     fetch(`${API_URL}/abonnements/stats`, {
       headers: { Authorization: `Bearer ${token()}` },
     })
@@ -385,6 +412,71 @@ function AdminView({
     setExpandedUser(userId);
   };
 
+  const handleCreateForfait = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForfaitMsg("");
+    try {
+      const res = await fetch(`${API_URL}/forfaits`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({
+          nom: newForfait.nom,
+          description: newForfait.description || null,
+          prix: parseFloat(newForfait.prix),
+          dureeJours: parseInt(newForfait.dureeJours),
+        }),
+      });
+      if (res.ok) {
+        setNewForfait({ nom: "", description: "", prix: "", dureeJours: "" });
+        setShowAddForfait(false);
+        setForfaitMsg("✓ Forfait créé avec succès.");
+        loadForfaits();
+      } else {
+        const d = await res.json();
+        setForfaitMsg(d.error ?? "Erreur lors de la création.");
+      }
+    } catch { setForfaitMsg("Erreur de connexion au serveur."); }
+  };
+
+  const handleUpdateForfait = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editForfait) return;
+    setForfaitMsg("");
+    try {
+      const res = await fetch(`${API_URL}/forfaits/${editForfait.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({
+          nom: editForfait.nom,
+          description: editForfait.description,
+          prix: editForfait.prix,
+          dureeJours: editForfait.dureeJours,
+        }),
+      });
+      if (res.ok) {
+        setEditForfait(null);
+        setForfaitMsg("✓ Forfait mis à jour.");
+        loadForfaits();
+      } else {
+        const d = await res.json();
+        setForfaitMsg(d.error ?? "Erreur lors de la modification.");
+      }
+    } catch { setForfaitMsg("Erreur de connexion au serveur."); }
+  };
+
+  const handleToggleForfait = async (id: number) => {
+    try {
+      const res = await fetch(`${API_URL}/forfaits/${id}/toggle`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setForfaits(prev => prev.map(f => f.id === id ? updated : f));
+      }
+    } catch { alert("Erreur lors du changement de statut."); }
+  };
+
   const toggleActif = async (u: UserRow) => {
     try {
       await fetch(`${API_URL}/users/${u.id}`, {
@@ -441,6 +533,96 @@ function AdminView({
             <LineChart parMois={statsData.parMois} parMoisParForfait={statsData.parMoisParForfait} />
           </div>
         )}
+
+        {/* ── Gestion des forfaits ── */}
+        <div className="section-title-row" style={{ marginTop: "2rem" }}>
+          <h3 className="section-title">🎿 GESTION DES FORFAITS</h3>
+          <button
+            className="panel-add-btn"
+            style={{ marginLeft: "auto", padding: "8px 18px", fontSize: "0.85rem" }}
+            onClick={() => { setShowAddForfait(v => !v); setForfaitMsg(""); setEditForfait(null); }}
+          >
+            {showAddForfait ? "✕ Annuler" : "+ Nouveau forfait"}
+          </button>
+        </div>
+
+        {showAddForfait && (
+          <div className="panel-add-section">
+            <h3 className="panel-add-title">AJOUTER UN FORFAIT</h3>
+            <form className="admin-add-form" onSubmit={handleCreateForfait}>
+              <div className="admin-add-row">
+                <input className="panel-add-input" placeholder="Nom du forfait" value={newForfait.nom} onChange={e => setNewForfait(p => ({ ...p, nom: e.target.value }))} required />
+                <input className="panel-add-input" placeholder="Description (optionnel)" value={newForfait.description} onChange={e => setNewForfait(p => ({ ...p, description: e.target.value }))} />
+                <input className="panel-add-input" placeholder="Prix (€)" type="number" min="0" step="0.01" value={newForfait.prix} onChange={e => setNewForfait(p => ({ ...p, prix: e.target.value }))} required />
+                <input className="panel-add-input" placeholder="Durée (jours)" type="number" min="1" value={newForfait.dureeJours} onChange={e => setNewForfait(p => ({ ...p, dureeJours: e.target.value }))} required />
+                <button type="submit" className="panel-add-btn">CRÉER</button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {forfaitMsg && (
+          <p className={forfaitMsg.startsWith("✓") ? "admin-msg-ok" : "admin-msg-err"}>{forfaitMsg}</p>
+        )}
+
+        <table className="panel-table">
+          <thead>
+            <tr>
+              <th>NOM</th>
+              <th>DESCRIPTION</th>
+              <th>PRIX</th>
+              <th>DURÉE</th>
+              <th>STATUT</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {forfaits.map(f => (
+              <React.Fragment key={f.id}>
+                <tr className={!f.actif ? "row-inactive" : ""}>
+                  <td><strong>{f.nom}</strong></td>
+                  <td>{f.description ?? "—"}</td>
+                  <td>{Number(f.prix).toFixed(2)} €</td>
+                  <td>{f.dureeJours} jour{f.dureeJours > 1 ? "s" : ""}</td>
+                  <td>
+                    <button
+                      className={`actif-toggle ${f.actif ? "toggle-on" : "toggle-off"}`}
+                      onClick={() => handleToggleForfait(f.id)}
+                      title={f.actif ? "Désactiver" : "Activer"}
+                    >
+                      {f.actif ? "Actif" : "Inactif"}
+                    </button>
+                  </td>
+                  <td className="mod-actions-cell">
+                    <button
+                      className="mod-action-btn mod-btn-reset"
+                      onClick={() => { setEditForfait(editForfait?.id === f.id ? null : { ...f }); setForfaitMsg(""); }}
+                      title="Modifier"
+                    >
+                      ✏️
+                    </button>
+                  </td>
+                </tr>
+                {editForfait?.id === f.id && (
+                  <tr className="mod-expand-row">
+                    <td colSpan={6}>
+                      <form className="mod-reset-panel" onSubmit={handleUpdateForfait}>
+                        <div className="admin-add-row">
+                          <input className="panel-add-input" placeholder="Nom" value={editForfait.nom} onChange={e => setEditForfait(p => p ? { ...p, nom: e.target.value } : p)} required />
+                          <input className="panel-add-input" placeholder="Description" value={editForfait.description ?? ""} onChange={e => setEditForfait(p => p ? { ...p, description: e.target.value } : p)} />
+                          <input className="panel-add-input" placeholder="Prix (€)" type="number" min="0" step="0.01" value={editForfait.prix} onChange={e => setEditForfait(p => p ? { ...p, prix: parseFloat(e.target.value) } : p)} required />
+                          <input className="panel-add-input" placeholder="Durée (jours)" type="number" min="1" value={editForfait.dureeJours} onChange={e => setEditForfait(p => p ? { ...p, dureeJours: parseInt(e.target.value) } : p)} required />
+                          <button type="submit" className="panel-add-btn">SAUVEGARDER</button>
+                          <button type="button" className="panel-add-btn" style={{ background: "#aaa" }} onClick={() => setEditForfait(null)}>ANNULER</button>
+                        </div>
+                      </form>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
 
         {/* Formulaire ajout */}
         <div className="panel-add-section">
