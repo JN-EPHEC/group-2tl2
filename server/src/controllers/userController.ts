@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import User from '../models/User';
 import Abonnement from '../models/Abonnement';
 import Forfait from '../models/Forfait';
+import { log } from '../services/logService';
 
 const SALT_ROUNDS = 10;
 
@@ -46,6 +47,16 @@ export const updateUser = async (req: Request, res: Response) => {
             data.motDePasse = await bcrypt.hash(data.motDePasse, SALT_ROUNDS);
         }
         await User.update(data, { where: { id } });
+
+        const adminId = (req as any).user?.id;
+        const ip      = req.ip ?? null;
+        if (req.body.role !== undefined)
+            await log(adminId, 'CHANGE_ROLE',      `User #${id} → rôle : ${req.body.role}`,                    ip);
+        if (req.body.motDePasse !== undefined)
+            await log(adminId, 'RESET_PASSWORD',   `User #${id} — mot de passe réinitialisé`,                  ip);
+        if (req.body.actif !== undefined)
+            await log(adminId, 'TOGGLE_USER',      `User #${id} → ${req.body.actif ? 'activé' : 'désactivé'}`, ip);
+
         return res.status(200).json({ message: "Mis à jour." });
     } catch (err: any) {
         return res.status(500).json({ error: "Erreur lors de la mise à jour." });
@@ -58,6 +69,7 @@ export const deleteUser = async (req: Request, res: Response) => {
         const deleted = await User.destroy({ where: { id } });
         if (deleted === 0)
             return res.status(404).json({ error: "Utilisateur non trouvé." });
+        await log((req as any).user?.id, 'DELETE_USER', `User #${id} supprimé`, req.ip ?? null);
         return res.status(204).send();
     } catch {
         return res.status(500).json({ error: "Erreur lors de la suppression." });
