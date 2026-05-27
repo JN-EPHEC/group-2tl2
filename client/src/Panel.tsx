@@ -45,6 +45,15 @@ interface ForfaitRow {
   actif: boolean;
 }
 
+interface LogEntry {
+  id: number;
+  action: string;
+  detail: string | null;
+  ipAddress: string | null;
+  dateAction: string;
+  utilisateur?: { nom: string; prenom: string; email: string };
+}
+
 // ── Utilitaire JWT ─────────────────────────────────────────
 function decodeToken(token: string): Partial<UserInfo> | null {
   try {
@@ -296,6 +305,9 @@ function AdminView({
   const [forfaitMsg, setForfaitMsg]       = useState("");
   const [newForfait, setNewForfait]       = useState({ nom: "", description: "", prix: "", dureeJours: "" });
 
+  // Journal d'actions
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+
   const token = () => localStorage.getItem("accessToken") ?? "";
 
   const loadUsers = async () => {
@@ -323,9 +335,20 @@ function AdminView({
     } catch { setForfaits([]); }
   };
 
+  const loadLogs = async () => {
+    try {
+      const res = await fetch(`${API_URL}/logs`, {
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      const data = res.ok ? await res.json() : [];
+      setLogs(Array.isArray(data) ? data : []);
+    } catch { setLogs([]); }
+  };
+
   useEffect(() => {
     loadUsers();
     loadForfaits();
+    loadLogs();
     fetch(`${API_URL}/abonnements/stats`, {
       headers: { Authorization: `Bearer ${token()}` },
     })
@@ -785,6 +808,44 @@ function AdminView({
             </tbody>
           </table>
         )}
+
+        {/* ── Journal d'actions admin ── */}
+        <div className="section-title-row" style={{ marginTop: "2rem" }}>
+          <h3 className="section-title">📋 JOURNAL D'ACTIONS</h3>
+          <button
+            className="panel-add-btn"
+            style={{ marginLeft: "auto", padding: "8px 18px", fontSize: "0.85rem" }}
+            onClick={loadLogs}
+          >
+            🔄 Actualiser
+          </button>
+        </div>
+
+        <table className="panel-table">
+          <thead>
+            <tr>
+              <th>DATE</th>
+              <th>ADMIN</th>
+              <th>ACTION</th>
+              <th>DÉTAIL</th>
+              <th>IP</th>
+            </tr>
+          </thead>
+          <tbody>
+            {logs.length === 0 ? (
+              <tr><td colSpan={5} style={{ textAlign: "center", color: "#aaa" }}>Aucune action enregistrée.</td></tr>
+            ) : logs.map(l => (
+              <tr key={l.id}>
+                <td style={{ whiteSpace: "nowrap" }}>{new Date(l.dateAction).toLocaleString("fr-FR")}</td>
+                <td>{l.utilisateur ? `${l.utilisateur.prenom} ${l.utilisateur.nom}` : "—"}</td>
+                <td><span style={{ fontFamily: "monospace", fontSize: "0.85rem" }}>{l.action}</span></td>
+                <td>{l.detail ?? "—"}</td>
+                <td style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>{l.ipAddress ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
       </main>
     </div>
   );

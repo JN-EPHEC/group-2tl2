@@ -12,6 +12,11 @@ jest.mock('../../models/User', () => ({
     },
 }));
 
+jest.mock('../../models/LogAction', () => ({
+    __esModule: true,
+    default: { create: jest.fn(), findAll: jest.fn() },
+}));
+
 jest.mock('../../models/Abonnement', () => ({
     __esModule: true,
     default: { findAll: jest.fn() },
