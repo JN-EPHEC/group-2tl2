@@ -7,6 +7,7 @@ import authRoutes       from './routes/authRoutes';
 import userRoutes       from './routes/userRoutes';
 import abonnementRoutes from './routes/abonnementRoutes';
 import forfaitRoutes    from './routes/forfaitRoutes';
+import logRoutes        from './routes/logRoutes';
 import { errorHandler } from './middlewares/errorHandler';
 
 dotenv.config();
@@ -21,6 +22,7 @@ app.use('/api/auth',        authRoutes);
 app.use('/api/users',       userRoutes);
 app.use('/api/abonnements', abonnementRoutes);
 app.use('/api/forfaits',    forfaitRoutes);
+app.use('/api/logs',        logRoutes);
 
 // ── Gestion centralisée des erreurs (doit être en dernier) ──
 app.use(errorHandler);

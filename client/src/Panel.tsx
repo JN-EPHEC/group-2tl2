@@ -36,6 +36,15 @@ interface StatsData {
   parMoisParForfait: { mois: string; forfait: string; total: number }[];
 }
 
+interface LogEntry {
+  id: number;
+  action: string;
+  detail: string | null;
+  ipAddress: string | null;
+  dateAction: string;
+  utilisateur: { nom: string; prenom: string; email: string } | null;
+}
+
 interface ForfaitRow {
   id: number;
   nom: string;
@@ -289,6 +298,9 @@ function AdminView({
   const [resetPwd, setResetPwd]               = useState("");
   const [resetMsg, setResetMsg]               = useState("");
 
+  // Journal d'actions
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+
   // Gestion forfaits
   const [forfaits, setForfaits]           = useState<ForfaitRow[]>([]);
   const [editForfait, setEditForfait]     = useState<ForfaitRow | null>(null);
@@ -313,6 +325,16 @@ function AdminView({
     }
   };
 
+  const loadLogs = async () => {
+    try {
+      const res = await fetch(`${API_URL}/logs`, {
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      const data = res.ok ? await res.json() : [];
+      setLogs(Array.isArray(data) ? data : []);
+    } catch { setLogs([]); }
+  };
+
   const loadForfaits = async () => {
     try {
       const res = await fetch(`${API_URL}/forfaits`, {
@@ -326,6 +348,7 @@ function AdminView({
   useEffect(() => {
     loadUsers();
     loadForfaits();
+    loadLogs();
     fetch(`${API_URL}/abonnements/stats`, {
       headers: { Authorization: `Bearer ${token()}` },
     })
@@ -785,6 +808,56 @@ function AdminView({
             </tbody>
           </table>
         )}
+
+        {/* ── Journal d'actions admin ── */}
+        <div className="section-title-row" style={{ marginTop: "2.5rem" }}>
+          <h3 className="section-title">📋 JOURNAL D'ACTIONS</h3>
+          <button
+            className="panel-add-btn"
+            style={{ marginLeft: "auto", padding: "8px 18px", fontSize: "0.85rem" }}
+            onClick={loadLogs}
+          >
+            🔄 Actualiser
+          </button>
+        </div>
+
+        {logs.length === 0 ? (
+          <p style={{ color: "#999", textAlign: "center", padding: "16px 0" }}>Aucune action enregistrée.</p>
+        ) : (
+          <table className="panel-table">
+            <thead>
+              <tr>
+                <th>DATE</th>
+                <th>ADMIN</th>
+                <th>ACTION</th>
+                <th>DÉTAIL</th>
+                <th>IP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map(l => (
+                <tr key={l.id}>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    {new Date(l.dateAction).toLocaleString("fr-FR")}
+                  </td>
+                  <td>{l.utilisateur ? `${l.utilisateur.prenom} ${l.utilisateur.nom}` : "—"}</td>
+                  <td>
+                    <span className={`role-badge role-${
+                      l.action.startsWith("CREATE") ? "super_admin" :
+                      l.action.startsWith("DELETE") ? "user" :
+                      "moderateur"
+                    }`} style={{ fontSize: "0.75rem" }}>
+                      {l.action}
+                    </span>
+                  </td>
+                  <td>{l.detail ?? "—"}</td>
+                  <td style={{ color: "#999", fontSize: "0.8rem" }}>{l.ipAddress ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
       </main>
     </div>
   );
