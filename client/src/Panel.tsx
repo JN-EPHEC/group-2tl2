@@ -44,9 +44,7 @@ function decodeToken(token: string): Partial<UserInfo> | null {
     return null;
   }
 }
-
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
-
+const API_URL = "http://91.134.138.162:3000/api";
 // ══════════════════════════════════════════════════════════
 export default function Panel() {
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
@@ -77,7 +75,7 @@ export default function Panel() {
           nom:     data.user?.nom      ?? payload?.nom     ?? "",
           prenom:  data.user?.prenom   ?? payload?.prenom  ?? "",
           email:   data.user?.email    ?? payload?.email   ?? loginEmail,
-          isAdmin: data.user?.isAdmin  ?? payload?.isAdmin ?? ((userRole === "super_admin" || userRole === "moderateur" || userRole === "admin")),
+          isAdmin: data.user?.isAdmin  ?? payload?.isAdmin ?? (payload?.role === "admin"),
           role:    data.user?.role     ?? payload?.role    ?? "user",
         };
         setCurrentUser(user);
@@ -454,7 +452,7 @@ function AdminView({
               <select className="panel-add-select" value={fRole} onChange={(e) => setFRole(e.target.value)}>
                 <option value="user">Membre</option>
                 <option value="moderateur">Modérateur</option>
-                <option value="admin">Super Admin</option>
+                <option value="super_admin">Super Admin</option>
               </select>
               <button type="submit" className="panel-add-btn">CRÉER</button>
             </div>
@@ -501,7 +499,7 @@ function AdminView({
                         >
                           <option value="user">Membre</option>
                           <option value="moderateur">Modérateur</option>
-                          <option value="admin">Super Admin</option>
+                          <option value="super_admin">Super Admin</option>
                         </select>
                       ) : (
                         <span className={`role-badge role-${u.role ?? "user"}`}>{u.role ?? "user"}</span>
