@@ -30,30 +30,6 @@ interface UserRow {
   dateInscription: string;
 }
 
-interface StatsData {
-  parMois: { mois: string; total: number }[];
-  parForfait: { nom: string; total: number }[];
-  parMoisParForfait: { mois: string; forfait: string; total: number }[];
-}
-
-interface ForfaitRow {
-  id: number;
-  nom: string;
-  description: string | null;
-  prix: number;
-  dureeJours: number;
-  actif: boolean;
-}
-
-interface LogEntry {
-  id: number;
-  action: string;
-  detail: string | null;
-  ipAddress: string | null;
-  dateAction: string;
-  utilisateur?: { nom: string; prenom: string; email: string };
-}
-
 // ── Utilitaire JWT ─────────────────────────────────────────
 function decodeToken(token: string): Partial<UserInfo> | null {
   try {
@@ -63,8 +39,10 @@ function decodeToken(token: string): Partial<UserInfo> | null {
   }
 }
 
+//const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 // const API_URL = "http://localhost:3000/api";
 const API_URL = "http://91.134.138.162:3000/api";
+
 // ══════════════════════════════════════════════════════════
 export default function Panel() {
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
@@ -76,7 +54,10 @@ export default function Panel() {
     localStorage.removeItem("accessToken");
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
+
+
+
+const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginMsg("");
     try {
@@ -88,15 +69,19 @@ export default function Panel() {
       const data = await res.json();
       if (res.ok) {
         localStorage.setItem("accessToken", data.accessToken);
-        // Récupère les infos user depuis la réponse ou le JWT
         const payload = decodeToken(data.accessToken);
+        
+        // C'EST ICI : On prend le rôle qui vient de ton serveur Node (Sequelize)
+        const userRole = data.user?.role ?? payload?.role ?? "user";
+
         const user: UserInfo = {
           id:      data.user?.id       ?? payload?.id      ?? 0,
           nom:     data.user?.nom      ?? payload?.nom     ?? "",
           prenom:  data.user?.prenom   ?? payload?.prenom  ?? "",
           email:   data.user?.email    ?? payload?.email   ?? loginEmail,
-          isAdmin: data.user?.isAdmin  ?? payload?.isAdmin ?? (payload?.role === "admin"),
-          role:    data.user?.role     ?? payload?.role    ?? "user",
+          // Si le rôle dans ta base est "super_admin" ou "moderateur", il devient Admin sur le site !
+          isAdmin: data.user?.isAdmin  ?? payload?.isAdmin ?? (userRole === "super_admin" || userRole === "moderateur" || userRole === "admin"),
+          role:    userRole,
         };
         setCurrentUser(user);
       } else {
@@ -106,6 +91,11 @@ export default function Panel() {
       setLoginMsg("Erreur de connexion au serveur.");
     }
   };
+
+
+
+
+
 
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
@@ -281,7 +271,6 @@ function AdminView({
 }) {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statsData, setStatsData] = useState<StatsData | null>(null);
 
   // Formulaire ajout
   const [fNom, setFNom] = useState("");
@@ -297,16 +286,6 @@ function AdminView({
   const [resetTarget, setResetTarget]         = useState<number | null>(null);
   const [resetPwd, setResetPwd]               = useState("");
   const [resetMsg, setResetMsg]               = useState("");
-
-  // Gestion forfaits
-  const [forfaits, setForfaits]           = useState<ForfaitRow[]>([]);
-  const [editForfait, setEditForfait]     = useState<ForfaitRow | null>(null);
-  const [showAddForfait, setShowAddForfait] = useState(false);
-  const [forfaitMsg, setForfaitMsg]       = useState("");
-  const [newForfait, setNewForfait]       = useState({ nom: "", description: "", prix: "", dureeJours: "" });
-
-  // Journal d'actions
-  const [logs, setLogs] = useState<LogEntry[]>([]);
 
   const token = () => localStorage.getItem("accessToken") ?? "";
 
@@ -325,38 +304,7 @@ function AdminView({
     }
   };
 
-  const loadForfaits = async () => {
-    try {
-      const res = await fetch(`${API_URL}/forfaits`, {
-        headers: { Authorization: `Bearer ${token()}` },
-      });
-      const data = res.ok ? await res.json() : [];
-      setForfaits(Array.isArray(data) ? data : []);
-    } catch { setForfaits([]); }
-  };
-
-  const loadLogs = async () => {
-    try {
-      const res = await fetch(`${API_URL}/logs`, {
-        headers: { Authorization: `Bearer ${token()}` },
-      });
-      const data = res.ok ? await res.json() : [];
-      setLogs(Array.isArray(data) ? data : []);
-    } catch { setLogs([]); }
-  };
-
-  useEffect(() => {
-    loadUsers();
-    loadForfaits();
-    loadLogs();
-    fetch(`${API_URL}/abonnements/stats`, {
-      headers: { Authorization: `Bearer ${token()}` },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => data && setStatsData(data))
-      .catch(() => {});
-  }, []);
-
+  useEffect(() => { loadUsers(); }, []);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -435,71 +383,6 @@ function AdminView({
     setExpandedUser(userId);
   };
 
-  const handleCreateForfait = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setForfaitMsg("");
-    try {
-      const res = await fetch(`${API_URL}/forfaits`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-        body: JSON.stringify({
-          nom: newForfait.nom,
-          description: newForfait.description || null,
-          prix: parseFloat(newForfait.prix),
-          dureeJours: parseInt(newForfait.dureeJours),
-        }),
-      });
-      if (res.ok) {
-        setNewForfait({ nom: "", description: "", prix: "", dureeJours: "" });
-        setShowAddForfait(false);
-        setForfaitMsg("✓ Forfait créé avec succès.");
-        loadForfaits();
-      } else {
-        const d = await res.json();
-        setForfaitMsg(d.error ?? "Erreur lors de la création.");
-      }
-    } catch { setForfaitMsg("Erreur de connexion au serveur."); }
-  };
-
-  const handleUpdateForfait = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editForfait) return;
-    setForfaitMsg("");
-    try {
-      const res = await fetch(`${API_URL}/forfaits/${editForfait.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-        body: JSON.stringify({
-          nom: editForfait.nom,
-          description: editForfait.description,
-          prix: editForfait.prix,
-          dureeJours: editForfait.dureeJours,
-        }),
-      });
-      if (res.ok) {
-        setEditForfait(null);
-        setForfaitMsg("✓ Forfait mis à jour.");
-        loadForfaits();
-      } else {
-        const d = await res.json();
-        setForfaitMsg(d.error ?? "Erreur lors de la modification.");
-      }
-    } catch { setForfaitMsg("Erreur de connexion au serveur."); }
-  };
-
-  const handleToggleForfait = async (id: number) => {
-    try {
-      const res = await fetch(`${API_URL}/forfaits/${id}/toggle`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token()}` },
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        setForfaits(prev => prev.map(f => f.id === id ? updated : f));
-      }
-    } catch { alert("Erreur lors du changement de statut."); }
-  };
-
   const toggleActif = async (u: UserRow) => {
     try {
       await fetch(`${API_URL}/users/${u.id}`, {
@@ -548,104 +431,6 @@ function AdminView({
             <span className="admin-stat-label">Modérateurs</span>
           </div>
         </div>
-
-        {/* Statistiques d'achats — graphique en ligne */}
-        {statsData && (
-          <div className="admin-chart-card">
-            <h3 className="admin-chart-title">📈 Fréquence d'achats par type de forfait (12 derniers mois)</h3>
-            <LineChart parMois={statsData.parMois} parMoisParForfait={statsData.parMoisParForfait} />
-          </div>
-        )}
-
-        {/* ── Gestion des forfaits ── */}
-        <div className="section-title-row" style={{ marginTop: "2rem" }}>
-          <h3 className="section-title">🎿 GESTION DES FORFAITS</h3>
-          <button
-            className="panel-add-btn"
-            style={{ marginLeft: "auto", padding: "8px 18px", fontSize: "0.85rem" }}
-            onClick={() => { setShowAddForfait(v => !v); setForfaitMsg(""); setEditForfait(null); }}
-          >
-            {showAddForfait ? "✕ Annuler" : "+ Nouveau forfait"}
-          </button>
-        </div>
-
-        {showAddForfait && (
-          <div className="panel-add-section">
-            <h3 className="panel-add-title">AJOUTER UN FORFAIT</h3>
-            <form className="admin-add-form" onSubmit={handleCreateForfait}>
-              <div className="admin-add-row">
-                <input className="panel-add-input" placeholder="Nom du forfait" value={newForfait.nom} onChange={e => setNewForfait(p => ({ ...p, nom: e.target.value }))} required />
-                <input className="panel-add-input" placeholder="Description (optionnel)" value={newForfait.description} onChange={e => setNewForfait(p => ({ ...p, description: e.target.value }))} />
-                <input className="panel-add-input" placeholder="Prix (€)" type="number" min="0" step="0.01" value={newForfait.prix} onChange={e => setNewForfait(p => ({ ...p, prix: e.target.value }))} required />
-                <input className="panel-add-input" placeholder="Durée (jours)" type="number" min="1" value={newForfait.dureeJours} onChange={e => setNewForfait(p => ({ ...p, dureeJours: e.target.value }))} required />
-                <button type="submit" className="panel-add-btn">CRÉER</button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {forfaitMsg && (
-          <p className={forfaitMsg.startsWith("✓") ? "admin-msg-ok" : "admin-msg-err"}>{forfaitMsg}</p>
-        )}
-
-        <table className="panel-table">
-          <thead>
-            <tr>
-              <th>NOM</th>
-              <th>DESCRIPTION</th>
-              <th>PRIX</th>
-              <th>DURÉE</th>
-              <th>STATUT</th>
-              <th>ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {forfaits.map(f => (
-              <React.Fragment key={f.id}>
-                <tr className={!f.actif ? "row-inactive" : ""}>
-                  <td><strong>{f.nom}</strong></td>
-                  <td>{f.description ?? "—"}</td>
-                  <td>{Number(f.prix).toFixed(2)} €</td>
-                  <td>{f.dureeJours} jour{f.dureeJours > 1 ? "s" : ""}</td>
-                  <td>
-                    <button
-                      className={`actif-toggle ${f.actif ? "toggle-on" : "toggle-off"}`}
-                      onClick={() => handleToggleForfait(f.id)}
-                      title={f.actif ? "Désactiver" : "Activer"}
-                    >
-                      {f.actif ? "Actif" : "Inactif"}
-                    </button>
-                  </td>
-                  <td className="mod-actions-cell">
-                    <button
-                      className="mod-action-btn mod-btn-reset"
-                      onClick={() => { setEditForfait(editForfait?.id === f.id ? null : { ...f }); setForfaitMsg(""); }}
-                      title="Modifier"
-                    >
-                      ✏️
-                    </button>
-                  </td>
-                </tr>
-                {editForfait?.id === f.id && (
-                  <tr className="mod-expand-row">
-                    <td colSpan={6}>
-                      <form className="mod-reset-panel" onSubmit={handleUpdateForfait}>
-                        <div className="admin-add-row">
-                          <input className="panel-add-input" placeholder="Nom" value={editForfait.nom} onChange={e => setEditForfait(p => p ? { ...p, nom: e.target.value } : p)} required />
-                          <input className="panel-add-input" placeholder="Description" value={editForfait.description ?? ""} onChange={e => setEditForfait(p => p ? { ...p, description: e.target.value } : p)} />
-                          <input className="panel-add-input" placeholder="Prix (€)" type="number" min="0" step="0.01" value={editForfait.prix} onChange={e => setEditForfait(p => p ? { ...p, prix: parseFloat(e.target.value) } : p)} required />
-                          <input className="panel-add-input" placeholder="Durée (jours)" type="number" min="1" value={editForfait.dureeJours} onChange={e => setEditForfait(p => p ? { ...p, dureeJours: parseInt(e.target.value) } : p)} required />
-                          <button type="submit" className="panel-add-btn">SAUVEGARDER</button>
-                          <button type="button" className="panel-add-btn" style={{ background: "#aaa" }} onClick={() => setEditForfait(null)}>ANNULER</button>
-                        </div>
-                      </form>
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
 
         {/* Formulaire ajout */}
         <div className="panel-add-section">
@@ -808,188 +593,7 @@ function AdminView({
             </tbody>
           </table>
         )}
-
-        {/* ── Journal d'actions admin ── */}
-        <div className="section-title-row" style={{ marginTop: "2rem" }}>
-          <h3 className="section-title">📋 JOURNAL D'ACTIONS</h3>
-          <button
-            className="panel-add-btn"
-            style={{ marginLeft: "auto", padding: "8px 18px", fontSize: "0.85rem" }}
-            onClick={loadLogs}
-          >
-            🔄 Actualiser
-          </button>
-        </div>
-
-        <table className="panel-table">
-          <thead>
-            <tr>
-              <th>DATE</th>
-              <th>ADMIN</th>
-              <th>ACTION</th>
-              <th>DÉTAIL</th>
-              <th>IP</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.length === 0 ? (
-              <tr><td colSpan={5} style={{ textAlign: "center", color: "#aaa" }}>Aucune action enregistrée.</td></tr>
-            ) : logs.map(l => (
-              <tr key={l.id}>
-                <td style={{ whiteSpace: "nowrap" }}>{new Date(l.dateAction).toLocaleString("fr-FR")}</td>
-                <td>{l.utilisateur ? `${l.utilisateur.prenom} ${l.utilisateur.nom}` : "—"}</td>
-                <td><span style={{ fontFamily: "monospace", fontSize: "0.85rem" }}>{l.action}</span></td>
-                <td>{l.detail ?? "—"}</td>
-                <td style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>{l.ipAddress ?? "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
       </main>
     </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════
-// GRAPHIQUE EN LIGNE SVG — fréquence d'achats
-// ══════════════════════════════════════════════════════════
-function LineChart({
-  parMois,
-  parMoisParForfait,
-}: {
-  parMois: { mois: string; total: number }[];
-  parMoisParForfait: { mois: string; forfait: string; total: number }[];
-}) {
-  if (parMois.length === 0) {
-    return <p style={{ color: '#999', textAlign: 'center', padding: '16px 0' }}>Aucune donnée sur les 12 derniers mois.</p>;
-  }
-
-  const months = parMois.map(m => m.mois);
-  const forfaitNames = [...new Set(parMoisParForfait.map(r => r.forfait))].sort();
-
-  const totalByMonth: Record<string, number> = {};
-  parMois.forEach(m => { totalByMonth[m.mois] = m.total; });
-
-  const forfaitByMonth: Record<string, Record<string, number>> = {};
-  forfaitNames.forEach(nom => { forfaitByMonth[nom] = {}; });
-  parMoisParForfait.forEach(r => { forfaitByMonth[r.forfait][r.mois] = r.total; });
-
-  // Calcul de l'échelle Y
-  const allValues = [...parMois.map(m => m.total), ...parMoisParForfait.map(r => r.total)];
-  const rawMax = Math.max(...allValues, 1);
-  const yStep = rawMax <= 5 ? 1 : rawMax <= 20 ? 5 : rawMax <= 50 ? 10 : rawMax <= 100 ? 20 : 50;
-  const yMax = Math.ceil(rawMax / yStep) * yStep + yStep;
-  const yTicks: number[] = [];
-  for (let v = 0; v <= yMax; v += yStep) yTicks.push(v);
-
-  const W = 680;
-  const H = 320;
-  const PAD = { top: 20, right: 30, bottom: 75, left: 55 };
-  const chartW = W - PAD.left - PAD.right;
-  const chartH = H - PAD.top - PAD.bottom;
-
-  const xScale = (i: number) =>
-    months.length === 1 ? PAD.left + chartW / 2 : PAD.left + (i / (months.length - 1)) * chartW;
-  const yScale = (v: number) => PAD.top + chartH - (v / yMax) * chartH;
-
-  const COLORS = ['#2c3e50', '#c0392b', '#2980b9', '#27ae60', '#8e44ad', '#e67e22'];
-  const MARKERS = ['circle', 'triangle', 'square', 'diamond'];
-
-  const series = [
-    { label: 'Total', values: months.map(m => totalByMonth[m] ?? 0), color: COLORS[0], marker: 'circle' },
-    ...forfaitNames.map((nom, i) => ({
-      label: nom,
-      values: months.map(m => forfaitByMonth[nom]?.[m] ?? 0),
-      color: COLORS[(i + 1) % COLORS.length],
-      marker: MARKERS[(i + 1) % MARKERS.length],
-    })),
-  ];
-
-  const formatLabel = (mois: string) => {
-    const [y, m] = mois.split('-');
-    return new Date(Number(y), Number(m) - 1).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
-  };
-
-  const legendCols = Math.min(series.length, 3);
-  const legendRows = Math.ceil(series.length / legendCols);
-  const LEGEND_ITEM_W = 180;
-  const svgH = H + legendRows * 24 + 10;
-
-  const renderMarker = (mx: number, my: number, type: string, color: string, key: string) => {
-    if (type === 'triangle') return <polygon key={key} points={`${mx},${my - 6} ${mx - 5},${my + 4} ${mx + 5},${my + 4}`} fill={color} />;
-    if (type === 'square')   return <rect    key={key} x={mx - 4} y={my - 4} width={8} height={8} fill={color} />;
-    if (type === 'diamond')  return <polygon key={key} points={`${mx},${my - 6} ${mx + 5},${my} ${mx},${my + 6} ${mx - 5},${my}`} fill={color} />;
-    return <circle key={key} cx={mx} cy={my} r={5} fill={color} />;
-  };
-
-  return (
-    <svg
-      width="100%"
-      viewBox={`0 0 ${W} ${svgH}`}
-      style={{ display: 'block', maxWidth: '100%', fontFamily: 'Arial, sans-serif' }}
-    >
-      {/* Fond zone graphique */}
-      <rect x={PAD.left} y={PAD.top} width={chartW} height={chartH} fill="#fafafa" stroke="#e0e0e0" strokeWidth={1} />
-
-      {/* Grille horizontale */}
-      {yTicks.map(v => (
-        <line key={`g${v}`} x1={PAD.left} y1={yScale(v)} x2={PAD.left + chartW} y2={yScale(v)}
-          stroke={v === 0 ? '#ccc' : '#e8e8e8'} strokeWidth={1} strokeDasharray={v === 0 ? '' : '4,3'} />
-      ))}
-
-      {/* Axes */}
-      <line x1={PAD.left} y1={PAD.top} x2={PAD.left} y2={PAD.top + chartH} stroke="#555" strokeWidth={1.5} />
-      <line x1={PAD.left} y1={PAD.top + chartH} x2={PAD.left + chartW} y2={PAD.top + chartH} stroke="#555" strokeWidth={1.5} />
-
-      {/* Labels axe Y */}
-      {yTicks.map(v => (
-        <text key={`yt${v}`} x={PAD.left - 8} y={yScale(v) + 4} textAnchor="end" fontSize={11} fill="#555">{v}</text>
-      ))}
-
-      {/* Titre axe Y */}
-      <text x={13} y={PAD.top + chartH / 2} textAnchor="middle" fontSize={11} fill="#666"
-        transform={`rotate(-90, 13, ${PAD.top + chartH / 2})`}>
-        Nombre d'achats
-      </text>
-
-      {/* Labels axe X */}
-      {months.map((m, i) => (
-        <text key={`xt${m}`} x={xScale(i)} y={PAD.top + chartH + 18} textAnchor="middle" fontSize={11} fill="#555">
-          {formatLabel(m)}
-        </text>
-      ))}
-
-      {/* Titre axe X */}
-      <text x={PAD.left + chartW / 2} y={PAD.top + chartH + 42} textAnchor="middle" fontSize={12} fill="#666">
-        Mois
-      </text>
-
-      {/* Lignes + marqueurs */}
-      {series.map(s => {
-        const pts = s.values.map((v, i) => `${xScale(i)},${yScale(v)}`).join(' ');
-        return (
-          <g key={s.label}>
-            <polyline points={pts} fill="none" stroke={s.color} strokeWidth={2.5} strokeLinejoin="round" />
-            {s.values.map((v, i) => renderMarker(xScale(i), yScale(v), s.marker, s.color, `${s.label}-${i}`))}
-          </g>
-        );
-      })}
-
-      {/* Légende */}
-      {series.map((s, idx) => {
-        const col = idx % legendCols;
-        const row = Math.floor(idx / legendCols);
-        const legendStartX = (W - legendCols * LEGEND_ITEM_W) / 2;
-        const lx = legendStartX + col * LEGEND_ITEM_W;
-        const ly = H + 8 + row * 24;
-        return (
-          <g key={`leg-${s.label}`}>
-            {renderMarker(lx + 10, ly + 6, s.marker, s.color, `legm-${s.label}`)}
-            <text x={lx + 24} y={ly + 11} fontSize={12} fill="#333">{s.label}</text>
-          </g>
-        );
-      })}
-    </svg>
   );
 }
