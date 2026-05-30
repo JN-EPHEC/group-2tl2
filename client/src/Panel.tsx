@@ -90,7 +90,7 @@ const handleLogin = async (e: React.FormEvent) => {
     } catch {
       setLoginMsg("Erreur de connexion au serveur.");
     }
-  };git 
+  };
 
 
 
