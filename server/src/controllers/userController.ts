@@ -41,25 +41,29 @@ export const createUser = async (req: Request, res: Response) => {
 
 export const updateUser = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const data = { ...req.body };
+    const { role } = req.body; // Récupère le rôle envoyé par le client
+
     try {
-        if (data.motDePasse) {
-            data.motDePasse = await bcrypt.hash(data.motDePasse, SALT_ROUNDS);
+        const user = await User.findByPk(id);
+        if (!user) {
+            return res.status(404).json({ error: "Utilisateur non trouvé" });
         }
-        await User.update(data, { where: { id } });
 
-        const adminId = (req as any).user?.id;
-        const ip      = req.ip ?? null;
-        if (req.body.role !== undefined)
-            await log(adminId, 'CHANGE_ROLE',    `User #${id} → rôle : ${req.body.role}`,                    ip);
-        if (req.body.motDePasse !== undefined)
-            await log(adminId, 'RESET_PASSWORD', `User #${id} — mot de passe réinitialisé`,                  ip);
-        if (req.body.actif !== undefined)
-            await log(adminId, 'TOGGLE_USER',    `User #${id} → ${req.body.actif ? 'activé' : 'désactivé'}`, ip);
+        // IMPORTANT : Vérifie ici si ta colonne s'appelle 'role' ou 'roleId'
+        // Si c'est un ID (ex: 1 pour admin, 2 pour user), il faut adapter !
+        if (role !== undefined) {
+            user.role = role; 
+        }
 
-        return res.status(200).json({ message: "Mis à jour." });
-    } catch (err: any) {
-        return res.status(500).json({ error: "Erreur lors de la mise à jour." });
+        await user.save(); // <-- TRÈS IMPORTANT, sinon ce n'est pas enregistré en DB !
+
+        // Log de l'action
+        await log((req as any).user?.id, 'CHANGE_ROLE', `User #${id} → rôle : ${role}`, req.ip ?? null);
+
+        return res.status(200).json(user);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Erreur lors de la modification du rôle" });
     }
 };
 
