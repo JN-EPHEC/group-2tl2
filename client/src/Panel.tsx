@@ -453,7 +453,7 @@ function AdminView({
               <select className="panel-add-select" value={fRole} onChange={(e) => setFRole(e.target.value)}>
                 <option value="user">Membre</option>
                 <option value="moderateur">Modérateur</option>
-                <option value="super_admin">Super Admin</option>
+                <option value="admin">Super Admin</option>
               </select>
               <button type="submit" className="panel-add-btn">CRÉER</button>
             </div>
@@ -500,7 +500,7 @@ function AdminView({
                         >
                           <option value="user">Membre</option>
                           <option value="moderateur">Modérateur</option>
-                          <option value="super_admin">Super Admin</option>
+                          <option value="admin">Super Admin</option>
                         </select>
                       ) : (
                         <span className={`role-badge role-${u.role ?? "user"}`}>{u.role ?? "user"}</span>
