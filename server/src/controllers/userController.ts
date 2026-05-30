@@ -66,13 +66,22 @@ export const updateUser = async (req: Request, res: Response) => {
 export const deleteUser = async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
+        // 1. On supprime d'abord TOUS les abonnements liés à cet utilisateur
+        await Abonnement.destroy({ where: { utilisateurId: id } });
+
+        // 2. Maintenant qu'il est "libre", on peut supprimer l'utilisateur sans erreur de contrainte
         const deleted = await User.destroy({ where: { id } });
+        
         if (deleted === 0)
             return res.status(404).json({ error: "Utilisateur non trouvé." });
+            
+        // 3. On enregistre le log
         await log((req as any).user?.id, 'DELETE_USER', `User #${id} supprimé`, req.ip ?? null);
+        
         return res.status(204).send();
-    } catch {
-        return res.status(500).json({ error: "Erreur lors de la suppression." });
+    } catch (err: any) {
+        console.error("ERREUR CRASH SUPPRESSION :", err); // Ça affichera le détail dans ta console serveur si ça bloque encore
+        return res.status(500).json({ error: "Erreur lors de la suppression sur le serveur." });
     }
 };
 
