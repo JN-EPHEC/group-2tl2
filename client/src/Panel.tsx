@@ -90,7 +90,7 @@ const handleLogin = async (e: React.FormEvent) => {
     } catch {
       setLoginMsg("Erreur de connexion au serveur.");
     }
-  };
+  };git 
 
 
 
@@ -331,16 +331,25 @@ function AdminView({
     }
   };
 
-  const handleDelete = async (id: number) => {
+ const handleDelete = async (id: number) => {
     if (!window.confirm("Supprimer cet utilisateur ?")) return;
     try {
-      await fetch(`${API_URL}/users/${id}`, {
+      const res = await fetch(`${API_URL}/users/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token()}` },
       });
-      setUsers((prev) => prev.filter((u) => u.id !== id));
-    } catch {
-      alert("Erreur lors de la suppression.");
+
+      if (res.ok) {
+        // Le serveur a réussi, on peut l'enlever de l'écran
+        setUsers((prev) => prev.filter((u) => u.id !== id));
+        alert("✓ Utilisateur supprimé avec succès.");
+      } else {
+        // Le serveur a refusé, on récupère l'erreur
+        const errData = await res.json();
+        alert(`❌ Impossible de supprimer sur le serveur : ${errData.error || res.statusText}`);
+      }
+    } catch (err) {
+      alert("Erreur de connexion au serveur.");
     }
   };
 
