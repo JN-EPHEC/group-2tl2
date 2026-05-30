@@ -30,6 +30,12 @@ interface UserRow {
   dateInscription: string;
 }
 
+interface StatsData {
+  parMois: { mois: string; total: number }[];
+  parForfait: { nom: string; total: number }[];
+  parMoisParForfait: { mois: string; forfait: string; total: number }[];
+}
+
 // ── Utilitaire JWT ─────────────────────────────────────────
 function decodeToken(token: string): Partial<UserInfo> | null {
   try {
@@ -39,9 +45,7 @@ function decodeToken(token: string): Partial<UserInfo> | null {
   }
 }
 
-//const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
-// const API_URL = "http://localhost:3000/api";
-const API_URL = "http://91.134.138.162:3000/api";
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
 // ══════════════════════════════════════════════════════════
 export default function Panel() {
@@ -54,10 +58,7 @@ export default function Panel() {
     localStorage.removeItem("accessToken");
   }, []);
 
-
-
-
-const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginMsg("");
     try {
@@ -69,19 +70,15 @@ const handleLogin = async (e: React.FormEvent) => {
       const data = await res.json();
       if (res.ok) {
         localStorage.setItem("accessToken", data.accessToken);
+        // Récupère les infos user depuis la réponse ou le JWT
         const payload = decodeToken(data.accessToken);
-        
-        // C'EST ICI : On prend le rôle qui vient de ton serveur Node (Sequelize)
-        const userRole = data.user?.role ?? payload?.role ?? "user";
-
         const user: UserInfo = {
           id:      data.user?.id       ?? payload?.id      ?? 0,
           nom:     data.user?.nom      ?? payload?.nom     ?? "",
           prenom:  data.user?.prenom   ?? payload?.prenom  ?? "",
           email:   data.user?.email    ?? payload?.email   ?? loginEmail,
-          // Si le rôle dans ta base est "super_admin" ou "moderateur", il devient Admin sur le site !
-          isAdmin: data.user?.isAdmin  ?? payload?.isAdmin ?? (userRole === "super_admin" || userRole === "moderateur" || userRole === "admin"),
-          role:    userRole,
+          isAdmin: data.user?.isAdmin  ?? payload?.isAdmin ?? ((userRole === "super_admin" || userRole === "moderateur" || userRole === "admin")),
+          role:    data.user?.role     ?? payload?.role    ?? "user",
         };
         setCurrentUser(user);
       } else {
@@ -91,11 +88,6 @@ const handleLogin = async (e: React.FormEvent) => {
       setLoginMsg("Erreur de connexion au serveur.");
     }
   };
-
-
-
-
-
 
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
@@ -271,6 +263,7 @@ function AdminView({
 }) {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statsData, setStatsData] = useState<StatsData | null>(null);
 
   // Formulaire ajout
   const [fNom, setFNom] = useState("");
@@ -304,7 +297,16 @@ function AdminView({
     }
   };
 
-  useEffect(() => { loadUsers(); }, []);
+  useEffect(() => {
+    loadUsers();
+    fetch(`${API_URL}/abonnements/stats`, {
+      headers: { Authorization: `Bearer ${token()}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => data && setStatsData(data))
+      .catch(() => {});
+  }, []);
+
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,25 +333,16 @@ function AdminView({
     }
   };
 
- const handleDelete = async (id: number) => {
+  const handleDelete = async (id: number) => {
     if (!window.confirm("Supprimer cet utilisateur ?")) return;
     try {
-      const res = await fetch(`${API_URL}/users/${id}`, {
+      await fetch(`${API_URL}/users/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token()}` },
       });
-
-      if (res.ok) {
-        // Le serveur a réussi, on peut l'enlever de l'écran
-        setUsers((prev) => prev.filter((u) => u.id !== id));
-        alert("✓ Utilisateur supprimé avec succès.");
-      } else {
-        // Le serveur a refusé, on récupère l'erreur
-        const errData = await res.json();
-        alert(`❌ Impossible de supprimer sur le serveur : ${errData.error || res.statusText}`);
-      }
-    } catch (err) {
-      alert("Erreur de connexion au serveur.");
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+    } catch {
+      alert("Erreur lors de la suppression.");
     }
   };
 
@@ -440,6 +433,14 @@ function AdminView({
             <span className="admin-stat-label">Modérateurs</span>
           </div>
         </div>
+
+        {/* Statistiques d'achats — graphique en ligne */}
+        {statsData && (
+          <div className="admin-chart-card">
+            <h3 className="admin-chart-title">📈 Fréquence d'achats par type de forfait (12 derniers mois)</h3>
+            <LineChart parMois={statsData.parMois} parMoisParForfait={statsData.parMoisParForfait} />
+          </div>
+        )}
 
         {/* Formulaire ajout */}
         <div className="panel-add-section">
@@ -604,5 +605,148 @@ function AdminView({
         )}
       </main>
     </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+// GRAPHIQUE EN LIGNE SVG — fréquence d'achats
+// ══════════════════════════════════════════════════════════
+function LineChart({
+  parMois,
+  parMoisParForfait,
+}: {
+  parMois: { mois: string; total: number }[];
+  parMoisParForfait: { mois: string; forfait: string; total: number }[];
+}) {
+  if (parMois.length === 0) {
+    return <p style={{ color: '#999', textAlign: 'center', padding: '16px 0' }}>Aucune donnée sur les 12 derniers mois.</p>;
+  }
+
+  const months = parMois.map(m => m.mois);
+  const forfaitNames = [...new Set(parMoisParForfait.map(r => r.forfait))].sort();
+
+  const totalByMonth: Record<string, number> = {};
+  parMois.forEach(m => { totalByMonth[m.mois] = m.total; });
+
+  const forfaitByMonth: Record<string, Record<string, number>> = {};
+  forfaitNames.forEach(nom => { forfaitByMonth[nom] = {}; });
+  parMoisParForfait.forEach(r => { forfaitByMonth[r.forfait][r.mois] = r.total; });
+
+  // Calcul de l'échelle Y
+  const allValues = [...parMois.map(m => m.total), ...parMoisParForfait.map(r => r.total)];
+  const rawMax = Math.max(...allValues, 1);
+  const yStep = rawMax <= 5 ? 1 : rawMax <= 20 ? 5 : rawMax <= 50 ? 10 : rawMax <= 100 ? 20 : 50;
+  const yMax = Math.ceil(rawMax / yStep) * yStep + yStep;
+  const yTicks: number[] = [];
+  for (let v = 0; v <= yMax; v += yStep) yTicks.push(v);
+
+  const W = 680;
+  const H = 320;
+  const PAD = { top: 20, right: 30, bottom: 75, left: 55 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  const xScale = (i: number) =>
+    months.length === 1 ? PAD.left + chartW / 2 : PAD.left + (i / (months.length - 1)) * chartW;
+  const yScale = (v: number) => PAD.top + chartH - (v / yMax) * chartH;
+
+  const COLORS = ['#2c3e50', '#c0392b', '#2980b9', '#27ae60', '#8e44ad', '#e67e22'];
+  const MARKERS = ['circle', 'triangle', 'square', 'diamond'];
+
+  const series = [
+    { label: 'Total', values: months.map(m => totalByMonth[m] ?? 0), color: COLORS[0], marker: 'circle' },
+    ...forfaitNames.map((nom, i) => ({
+      label: nom,
+      values: months.map(m => forfaitByMonth[nom]?.[m] ?? 0),
+      color: COLORS[(i + 1) % COLORS.length],
+      marker: MARKERS[(i + 1) % MARKERS.length],
+    })),
+  ];
+
+  const formatLabel = (mois: string) => {
+    const [y, m] = mois.split('-');
+    return new Date(Number(y), Number(m) - 1).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
+  };
+
+  const legendCols = Math.min(series.length, 3);
+  const legendRows = Math.ceil(series.length / legendCols);
+  const LEGEND_ITEM_W = 180;
+  const svgH = H + legendRows * 24 + 10;
+
+  const renderMarker = (mx: number, my: number, type: string, color: string, key: string) => {
+    if (type === 'triangle') return <polygon key={key} points={`${mx},${my - 6} ${mx - 5},${my + 4} ${mx + 5},${my + 4}`} fill={color} />;
+    if (type === 'square')   return <rect    key={key} x={mx - 4} y={my - 4} width={8} height={8} fill={color} />;
+    if (type === 'diamond')  return <polygon key={key} points={`${mx},${my - 6} ${mx + 5},${my} ${mx},${my + 6} ${mx - 5},${my}`} fill={color} />;
+    return <circle key={key} cx={mx} cy={my} r={5} fill={color} />;
+  };
+
+  return (
+    <svg
+      width="100%"
+      viewBox={`0 0 ${W} ${svgH}`}
+      style={{ display: 'block', maxWidth: '100%', fontFamily: 'Arial, sans-serif' }}
+    >
+      {/* Fond zone graphique */}
+      <rect x={PAD.left} y={PAD.top} width={chartW} height={chartH} fill="#fafafa" stroke="#e0e0e0" strokeWidth={1} />
+
+      {/* Grille horizontale */}
+      {yTicks.map(v => (
+        <line key={`g${v}`} x1={PAD.left} y1={yScale(v)} x2={PAD.left + chartW} y2={yScale(v)}
+          stroke={v === 0 ? '#ccc' : '#e8e8e8'} strokeWidth={1} strokeDasharray={v === 0 ? '' : '4,3'} />
+      ))}
+
+      {/* Axes */}
+      <line x1={PAD.left} y1={PAD.top} x2={PAD.left} y2={PAD.top + chartH} stroke="#555" strokeWidth={1.5} />
+      <line x1={PAD.left} y1={PAD.top + chartH} x2={PAD.left + chartW} y2={PAD.top + chartH} stroke="#555" strokeWidth={1.5} />
+
+      {/* Labels axe Y */}
+      {yTicks.map(v => (
+        <text key={`yt${v}`} x={PAD.left - 8} y={yScale(v) + 4} textAnchor="end" fontSize={11} fill="#555">{v}</text>
+      ))}
+
+      {/* Titre axe Y */}
+      <text x={13} y={PAD.top + chartH / 2} textAnchor="middle" fontSize={11} fill="#666"
+        transform={`rotate(-90, 13, ${PAD.top + chartH / 2})`}>
+        Nombre d'achats
+      </text>
+
+      {/* Labels axe X */}
+      {months.map((m, i) => (
+        <text key={`xt${m}`} x={xScale(i)} y={PAD.top + chartH + 18} textAnchor="middle" fontSize={11} fill="#555">
+          {formatLabel(m)}
+        </text>
+      ))}
+
+      {/* Titre axe X */}
+      <text x={PAD.left + chartW / 2} y={PAD.top + chartH + 42} textAnchor="middle" fontSize={12} fill="#666">
+        Mois
+      </text>
+
+      {/* Lignes + marqueurs */}
+      {series.map(s => {
+        const pts = s.values.map((v, i) => `${xScale(i)},${yScale(v)}`).join(' ');
+        return (
+          <g key={s.label}>
+            <polyline points={pts} fill="none" stroke={s.color} strokeWidth={2.5} strokeLinejoin="round" />
+            {s.values.map((v, i) => renderMarker(xScale(i), yScale(v), s.marker, s.color, `${s.label}-${i}`))}
+          </g>
+        );
+      })}
+
+      {/* Légende */}
+      {series.map((s, idx) => {
+        const col = idx % legendCols;
+        const row = Math.floor(idx / legendCols);
+        const legendStartX = (W - legendCols * LEGEND_ITEM_W) / 2;
+        const lx = legendStartX + col * LEGEND_ITEM_W;
+        const ly = H + 8 + row * 24;
+        return (
+          <g key={`leg-${s.label}`}>
+            {renderMarker(lx + 10, ly + 6, s.marker, s.color, `legm-${s.label}`)}
+            <text x={lx + 24} y={ly + 11} fontSize={12} fill="#333">{s.label}</text>
+          </g>
+        );
+      })}
+    </svg>
   );
 }
