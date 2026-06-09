@@ -2,7 +2,7 @@
 
 Application web de gestion et vente de forfaits de ski. Les visiteurs peuvent acheter un forfait, les administrateurs gèrent les utilisateurs via un espace pro sécurisé.
 
-**Production :** [http://91.134.138.162:5174/](http://91.134.138.162:5174/)
+**Production :** [http://91.134.138.162:5173/](http://91.134.138.162:5173/)
 
 ---
 
