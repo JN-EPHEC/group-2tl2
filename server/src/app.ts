@@ -12,11 +12,31 @@ import { errorHandler } from './middlewares/errorHandler';
 
 dotenv.config();
 
+
 const app = express();
-const allowedOrigin = process.env.CLIENT_URL ?? 'http://91.134.138.162:5173';
-app.use(cors({ origin: allowedOrigin, credentials: true }));
+
+// On autorise à la fois l'adresse en ligne ET ton adresse locale (localhost)
+const allowedOrigins = [
+  process.env.CLIENT_URL, 
+  'http://91.134.138.162:5173', 
+  'http://localhost:5173'
+];
+
+app.use(cors({ 
+  origin: (origin, callback) => {
+    // Si l'adresse qui appelle le serveur est dans notre liste, on accepte
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Bloqué par CORS'));
+    }
+  }, 
+  credentials: true 
+}));
+
 app.use(express.json());
 app.use(cookieParser());
+
 
 app.use('/api/auth',        authRoutes);
 app.use('/api/users',       userRoutes);
